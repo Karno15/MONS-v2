@@ -1,10 +1,7 @@
 <?php
-$servername = "";
-$username = "";
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "";
 $dbname = "monsv2";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -13,9 +10,6 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$ftp_server = "";
-$ftp_username = "";
-$ftp_password = "";
 $ftp_server = "localhost";
 $ftp_username = "admin";
 $ftp_password = "admin";
@@ -29,4 +23,3 @@ $login_result = ftp_login($ftp_conn, $ftp_username, $ftp_password);
 if (!$login_result) {
     die("Failed to login to FTP server");
 }
-//test
