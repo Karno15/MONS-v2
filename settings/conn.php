@@ -23,3 +23,20 @@ $login_result = ftp_login($ftp_conn, $ftp_username, $ftp_password);
 if (!$login_result) {
     die("Failed to login to FTP server");
 }
+
+function uidExists($uid)
+{
+    global $conn;
+
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM users WHERE UID = ?");
+    $stmt->bind_param("s", $uid);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['count'] > 0;
+    }
+
+    return false;
+}
