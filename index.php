@@ -41,7 +41,7 @@ ob_start();
 <body>
     <div id="popup">
         <button id="closepopup">X</button>
-        <form action='register.php' method='post'>
+        <form action='register.php' method='POST'>
             <input type="text" name="login" class="input-login">
             <input type="password" name="password" class="input-login">
             <button type='submit' id="login">REGISTER</button>
@@ -54,7 +54,7 @@ ob_start();
     ?>
     <div id="container">
         <div id="login">
-            <form action='login.php' method='post'>
+            <form action='login.php' method='POST'>
                 <input type="text" name="login" class="input-login">
                 <input type="password" name="password" class="input-login">
                 <button type='submit' id="login">LOGIN</button>
