@@ -51,6 +51,12 @@ session_start();
         <br>
         <?php
         echo '<img src="image.php?path=' . getAvatarPath($_SESSION['userid']) . '" alt="avatar" id="avatar" />';
+
+        $result = callProc('showPartyData', array(
+            array('value' => $_SESSION["userid"], 'type' => 'i')
+        ));
+
+        print_r($result);
         ?>
     </div>
 

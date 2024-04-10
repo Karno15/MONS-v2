@@ -9,7 +9,7 @@ if (isset($_FILES['fileInput']) && $_FILES['fileInput']['error'] == UPLOAD_ERR_O
     $fileName = $_FILES['fileInput']['name'];
     $ftpUploadDirectory = "/avatars/";
 
-    $uniqueFileName = $_SESSION['userid'] . '.' . pathinfo($fileName, PATHINFO_EXTENSION); // Use the file's original extension
+    $uniqueFileName = uniqid() . '_' . $_SESSION['userid'] . '.' . pathinfo($fileName, PATHINFO_EXTENSION); // Use the file's original extension
     $destinationPath = $ftpUploadDirectory . $uniqueFileName;
 
     if (ftp_put($ftp_conn, $destinationPath, $tmpFilePath, FTP_BINARY)) {
