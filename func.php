@@ -1,6 +1,7 @@
 <?php
 
-function getAvatarPath($userId) {
+function getAvatarPath($userId)
+{
     global $conn;
 
     $query = "SELECT avatar FROM users WHERE userid = ?";
@@ -12,7 +13,8 @@ function getAvatarPath($userId) {
     mysqli_stmt_close($stmt);
     return $avatarPath;
 }
-function getSignature($userId) {
+function getSignature($userId)
+{
     global $conn;
 
     $query = "SELECT signature FROM users WHERE userid = ?";
@@ -25,7 +27,8 @@ function getSignature($userId) {
     return $signature;
 }
 
-function callProc($procName, $params = array()) {
+function callProc($procName, $params = array())
+{
     global $conn;
 
     $paramTypes = '';
@@ -60,5 +63,15 @@ function callProc($procName, $params = array()) {
     return $rows;
 }
 
+function isPartyFull()
+{
+    $result = callProc('showPartyData', array(
+        array('value' => $_SESSION["userid"], 'type' => 'i')
+    ));
 
-?>
+    if ($result !== false && count($result) < 6) {
+        return true;
+    } else {
+        return false;
+    }
+}

@@ -10,7 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $login = $_POST["login"];
     $password = $_POST["password"];
 
-    $stmt = $conn->prepare("SELECT userid, password, uid FROM users WHERE login = ? and status='A'");
+    $stmt = $conn->prepare("SELECT userid, password, uid, login FROM users WHERE login = ? and status='A'");
     $stmt->bind_param("s", $login);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -21,6 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             session_start();
             $_SESSION["uid"] = $row["uid"];
             $_SESSION["userid"] = $row["userid"];
+            $_SESSION["login"] = $row["login"];
             header("Location: main.php");
             exit;
         } else {

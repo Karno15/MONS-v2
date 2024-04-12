@@ -1,12 +1,67 @@
-#popup, #editbox {
+body {
+    margin: 0 auto;
+    background-color: black;
+    color: #00ff15;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#popup,
+#editbox {
     display: none;
 }
 
-div{
-    border: 1px solid black;
+div {
+    border: 1px solid white;
 }
 
 #avatar {
-    height:200px;
-    width:200px;
+    height: 200px;
+    width: 200px;
 }
+
+.pokemon-card {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px;
+    display: inline-block;
+}
+
+.pokemon-name {
+    font-weight: bold;
+    color: #00ffe5;
+}
+
+.pokemon-types {
+    color:black;
+    margin-top: 5px;
+}
+
+.pokemon-type {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    margin-right: 5px;
+}
+
+.pokemon-stats {
+    margin-top: 10px;
+}
+
+.pokemon-stat {
+    display: block;
+}
+
+.progress-bar {
+    width: 100%;
+    background-color: #ddd;
+    border-radius: 4px;
+  }
+  
+  .progress {
+    height: 20px;
+    background-color: #4caf50;
+    border-radius: 4px;
+    width: 0%;
+  }
+  
