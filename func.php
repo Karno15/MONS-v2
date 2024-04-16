@@ -75,3 +75,17 @@ function isPartyFull()
         return false;
     }
 }
+
+function generateToken($length = 32)
+{
+    return bin2hex(random_bytes($length));
+}
+
+function playerDefeatedOpponent()
+{
+    if (isset($_SESSION['addexp']) && $_SESSION['addexp']) {
+        return true;
+    } else {
+        return false;
+    }
+}

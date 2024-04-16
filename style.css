@@ -3,6 +3,7 @@ body {
     background-color: black;
     color: #00ff15;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
+    text-align: center;
 }
 
 #popup,
@@ -10,13 +11,17 @@ body {
     display: none;
 }
 
-div {
-    border: 1px solid white;
+#avatar {
+    height: 100px;
+    width: 100px;
 }
 
-#avatar {
-    height: 200px;
-    width: 200px;
+#pokemon-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-left: 100px;
+    margin-right: 100px;
 }
 
 .pokemon-card {
@@ -24,7 +29,19 @@ div {
     border-radius: 5px;
     padding: 10px;
     margin: 10px;
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: calc(16.666% - 20px); /* 16.666% for six cards in one line, subtracting margin */
+    max-width: calc(16.666% - 20px);
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.pokemon-sprite>img {
+    width: 80px;
+    height: 80px;
 }
 
 .pokemon-name {
@@ -33,12 +50,11 @@ div {
 }
 
 .pokemon-types {
-    color:black;
+    color: black;
     margin-top: 5px;
 }
 
 .pokemon-type {
-    display: inline-block;
     padding: 3px 8px;
     border-radius: 3px;
     margin-right: 5px;
@@ -48,20 +64,51 @@ div {
     margin-top: 10px;
 }
 
-.pokemon-stat {
-    display: block;
-}
-
 .progress-bar {
-    width: 100%;
+    width: 190px;
     background-color: #ddd;
     border-radius: 4px;
-  }
-  
-  .progress {
+    color: black;
+    outline: 1px solid darkgray;
+}
+
+.progress-exp,
+.progress-hp {
+    background-color: #0099ff;
     height: 20px;
-    background-color: #4caf50;
     border-radius: 4px;
     width: 0%;
-  }
-  
+}
+
+.hpcount,
+.status {
+    color: #fff;
+    text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;
+}
+
+.hpcount {
+    top: 19.2px;
+}
+
+.status{
+    width: 40px;
+    margin: auto;
+    background-color: white;
+    padding: 3px;
+    border-radius: 5px;
+    margin-top: 7px;
+    min-height: 19.2px;
+}
+
+#footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: red;
+    color: white;
+    text-align: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 15pt;
+    z-index: 6;
+}

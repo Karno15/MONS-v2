@@ -2,6 +2,8 @@
 require 'settings/conn.php';
 require 'func.php';
 session_start();
+
+echo $_SESSION["userid"];
 ?>
 
 <html>
@@ -12,6 +14,7 @@ session_start();
     <title>MONS</title>
     <script src="jquery-3.7.1.min.js"></script>
     <link rel='stylesheet' href='style.css'>
+    <script src="script.js"></script>
     <script>
         $(document).ready(function() {
             $("#editbutton").click(function() {
@@ -28,89 +31,21 @@ session_start();
 
             getPartyPokemon();
 
+            var pokedexId = $('#addPokemon-PokedexId').val();
+            var level = $('#addPokemon-level').val();
+
             $('#addPokemon').click(function() {
-                var pokedexId = $('#addPokemon-PokedexId').val();
-                var level = $('#addPokemon-level').val();
-
-                $.ajax({
-                    url: 'addPokemon.php',
-                    method: 'POST',
-                    data: {
-                        pokedexId: pokedexId,
-                        level: level
-                    },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            getPartyPokemon();
-                        } else {
-                            alert('Failed to add Pokemon.');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error adding Pokemon:', error);
-                    }
-                });
+                addPokemon(pokedexId, level);
             });
 
 
+
+            $('#addExp').click(function() {
+                var pokemonId = $('#addexp-pokemonId').val();
+                var exp = $('#addexp-exp').val();
+                addExp(pokemonId, exp);
+            });
         });
-
-        function getPartyPokemon() {
-            $.ajax({
-                url: 'getPartyPokemon.php',
-                method: 'GET',
-                dataType: 'json',
-                success: function(response) {
-                    displayPokemon(response);
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error fetching Pokemon data:', error);
-                }
-            });
-        }
-
-        function displayPokemon(data) {
-            var container = $('#pokemon-container');
-            var spritesPath = 'sprites/pkfront/';
-
-            container.empty();
-
-            data.forEach(function(pokemon) {
-                var card = $('<div class="pokemon-card"></div>');
-                var name = $('<div class="pokemon-name">' + pokemon.Name + '</div>');
-                var sprite = $('<div class="pokemon-sprite"><img src="image.php?path=' + spritesPath + pokemon.PokedexId + '.png" alt="sprite" /></div>');
-                var types = $('<div class="pokemon-types"></div>');
-                var stats = $('<div class="pokemon-stats"></div>');
-
-                if (pokemon.Type1) {
-                    types.append('<span class="pokemon-type" style="background-color: #' + pokemon.TypeColor + ';">' + pokemon.Type1 + '</span>');
-                }
-                if (pokemon.Type2) {
-                    types.append('<span class="pokemon-type" style="background-color: #' + pokemon.TypeColor2 + ';">' + pokemon.Type2 + '</span>');
-                }
-
-                stats.append('<span class="pokemon-stat">Level: ' + pokemon.Level + '</span>');
-                stats.append('<span class="pokemon-stat">HP: ' + pokemon.HP + '</span>');
-                stats.append('<span class="pokemon-stat">Attack: ' + pokemon.Attack + '</span>');
-                stats.append('<span class="pokemon-stat">Defense: ' + pokemon.Defense + '</span>');
-                stats.append('<span class="pokemon-stat">Special Atk: ' + pokemon.SpAtk + '</span>');
-                stats.append('<span class="pokemon-stat">Special Def: ' + pokemon.SpDef + '</span>');
-                stats.append('<span class="pokemon-stat">Speed: ' + pokemon.Speed + '</span>');
-                stats.append('<span class="pokemon-stat">EXP left: ' + (pokemon.ExpTNL ? pokemon.ExpTNL : '0') + '</span>');
-
-                percentage = Math.round(((pokemon.Exp - pokemon.MinExp) / pokemon.ExpTNL) * 100);
-
-                var progressBar = $('<div class="progress-bar"><div class="progress" id="progress' + pokemon.PokemonId + '"></div></div>');
-
-                stats.append(progressBar);
-                card.append(name, sprite, types, stats);
-
-                container.append(card);
-
-                $("#progress" + pokemon.PokemonId).css("width", percentage + "%");
-            });
-        }
     </script>
 </head>
 
@@ -143,14 +78,14 @@ session_start();
             <button id="addPokemon">Add Pokemon</button>
         </p>
         <div id="pokemon-container"></div>
-    </div>
-
-    <div id='footer'>v<span id='ver'>
-            <?php
-            echo file_get_contents('verinfo.txt');
-            ob_flush();
-            ?>
-        </span> Made by @karkarno
+        <p>
+            PokemonID:<input type="number" id="addexp-pokemonId">
+            <br>
+            Exp:<input type="number" id="addexp-exp">
+            <br>
+            <button id="addExp">Add Exp</button>
+        </p>
+        <div id="test"></div>
     </div>
 </body>
 
