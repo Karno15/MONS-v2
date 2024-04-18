@@ -27,59 +27,76 @@ function getSignature($userId)
     return $signature;
 }
 
-function callProc($procName, $params = array())
+function isPartyFull()
 {
     global $conn;
 
-    $paramTypes = '';
-    $paramValues = array();
-    $placeholders = '';
-
-    foreach ($params as $param) {
-        $paramTypes .= $param['type'];
-        $paramValues[] = &$param['value'];
-        $placeholders .= '?,';
-    }
-    $placeholders = rtrim($placeholders, ',');
-    $query = "CALL $procName($placeholders)";
+    $query = "CALL showPartyData(?)";
     $stmt = mysqli_prepare($conn, $query);
-    if ($stmt === false) {
-        return false;
-    }
-
-    if (!empty($paramTypes)) {
-        array_unshift($paramValues, $stmt, $paramTypes);
-        call_user_func_array('mysqli_stmt_bind_param', $paramValues);
-    }
+    $userId = $_SESSION["userid"];
+    mysqli_stmt_bind_param($stmt, 'i', $userId);
     mysqli_stmt_execute($stmt);
-
     $result = mysqli_stmt_get_result($stmt);
+
     $rows = array();
     while ($row = mysqli_fetch_assoc($result)) {
         $rows[] = $row;
     }
     mysqli_stmt_close($stmt);
 
-    return $rows;
-}
-
-function isPartyFull()
-{
-    $result = callProc('showPartyData', array(
-        array('value' => $_SESSION["userid"], 'type' => 'i')
-    ));
-
-    if ($result !== false && count($result) < 6) {
+    if (count($rows) < 6) {
         return true;
     } else {
         return false;
     }
 }
 
-function generateToken($length = 32)
-{
-    return bin2hex(random_bytes($length));
+function fillMonStats($pokemonId) {
+    global $conn;
+
+    $query = "CALL fillMonStats(?)";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+    $success = mysqli_stmt_execute($stmt);
+
+    if (!$success) {
+        echo "Error executing stored procedure: " . mysqli_error($conn);
+    }
+    mysqli_stmt_close($stmt);
 }
+
+
+function getPokemonExpDetails($pokemonId) {
+    global $conn;
+
+    $query = 'SELECT p.Level, p.Exp, (e.Exp + e.ExpTNL - p.Exp) AS "ExpTNL"
+              FROM pokemon p
+              JOIN pokedex pk ON pk.PokedexId = p.PokedexId
+              JOIN exptype e ON e.Level = p.Level AND pk.ExpType = e.Type
+              WHERE pokemonId = ?';
+    
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+
+        return array(
+            'success' => true,
+            'exp' => $row['Exp'],
+            'level' => $row['Level'],
+            'expTNL' => $row['ExpTNL']
+        );
+    } else {
+        return array(
+            'success' => false,
+            'message' => 'Can\'t retrieve Pokemon exp details'
+        );
+    }
+}
+
 
 function playerDefeatedOpponent()
 {

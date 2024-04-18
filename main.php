@@ -3,7 +3,6 @@ require 'settings/conn.php';
 require 'func.php';
 session_start();
 
-echo $_SESSION["userid"];
 ?>
 
 <html>
@@ -31,13 +30,11 @@ echo $_SESSION["userid"];
 
             getPartyPokemon();
 
-            var pokedexId = $('#addPokemon-PokedexId').val();
-            var level = $('#addPokemon-level').val();
-
             $('#addPokemon').click(function() {
+                var pokedexId = $('#addPokemon-PokedexId').val();
+                var level = $('#addPokemon-level').val();
                 addPokemon(pokedexId, level);
             });
-
 
 
             $('#addExp').click(function() {

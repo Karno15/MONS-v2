@@ -2,43 +2,46 @@
 require 'settings/conn.php';
 require 'func.php';
 session_start();
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pokemonId = $_POST['pokemonId'];
-    $exp = $_POST['exp'];
+    $expgained = $_POST['exp'];
+    $expdet = getPokemonExpDetails($pokemonId);
+    $maxlevel = 100;
 
-    $query = 'select p.Level,p.Exp,e.Exp as "Explevel", (e.Exp+e.ExpTNL-p.Exp) as "ExpTNL" from pokemon p join pokedex pk
-     ON pk.PokedexId=p.PokedexId JOIN exptype e ON e.Level=p.Level and pk.ExpType=e.Type where pokemonId= ? ;';
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
+    if ($expdet['success']) {
+        while ($expgained && $expdet['level'] < $maxlevel) {
+            $expTNL = $expdet['expTNL'];
 
-    if ($result && mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_assoc($result);
-        
-        $exp = $row['Exp'];
-        $explevel = $exp = $row['Exp'];
-        $level = $row['Level'];
-        $exp = $row['ExpTNL'];
+            if ($expgained >= $expTNL) {
+                $querylvl = "UPDATE pokemon SET Level = (Level + 1) WHERE PokemonId = ?";
+                $stmtlvl = mysqli_prepare($conn, $querylvl);
+                mysqli_stmt_bind_param($stmtlvl, 'i', $pokemonId);
+                $resultlvl = mysqli_stmt_execute($stmtlvl);
+                mysqli_stmt_close($stmtlvl);
+                if (!$resultlvl) {
+                    echo json_encode(array('success' => false, 'message' => 'Can\'t level up'));
+                }
+                $expgained = $expgained - $expTNL;
+                $expToAdd = $expTNL;
 
-    } else {
-        echo json_encode(array('success' => false, 'message' => 'Cant update exp'));
-    }
+                fillMonStats($pokemonId);
+            } else {
+                $expToAdd = $expgained;
+                $expgained = 0;
+            }
+            $queryexp = "UPDATE pokemon SET Exp = Exp + ? WHERE PokemonId = ?";
+            $stmtexp = mysqli_prepare($conn, $queryexp);
+            mysqli_stmt_bind_param($stmtexp, 'ii', $expToAdd, $pokemonId);
+            $resultexp = mysqli_stmt_execute($stmtexp);
+            mysqli_stmt_close($stmtexp);
+            
+            $expdet = getPokemonExpDetails($pokemonId);
+        }
 
-    print_r($row);
-
-    $query = "UPDATE pokemon SET Exp = Exp + ? WHERE PokemonId = ?";
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'ii', $exp, $pokemonId);
-    $result = mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
-
-    if ($result) {
         echo json_encode(array('success' => true));
     } else {
-        echo json_encode(array('success' => false, 'message' => 'Cant update exp'));
+        echo "Error: " . $expdet['message'];
     }
 } else {
-    echo json_encode(array('success' => false, 'message' => 'Cant add exp'));
+    echo json_encode(array('success' => false, 'message' => 'Cant set exp'));
 }

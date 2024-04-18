@@ -9,9 +9,18 @@ if(!isset($_SESSION['userid'])){
     exit;
 }
 
-$pokemonData = callProc('showPartyData', array(
-    array('value' => $_SESSION["userid"], 'type' => 'i')
-));
+$query = "CALL showPartyData(?)";
+$stmt = mysqli_prepare($conn, $query);
+$userID = $_SESSION["userid"];
+mysqli_stmt_bind_param($stmt, 'i', $userID);
+
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$pokemonData = array();
+while ($row = mysqli_fetch_assoc($result)) {
+    $pokemonData[] = $row;
+}
+mysqli_stmt_close($stmt);
 
 if ($pokemonData !== false) {
     header('Content-Type: application/json');

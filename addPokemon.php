@@ -17,9 +17,9 @@ mysqli_stmt_close($stmt);
 $lastInsertId = mysqli_insert_id($conn);
 
 if ($result && $lastInsertId) {
-    $fillStatsQuery = "CALL fillMonStats(?, ?)";
+    $fillStatsQuery = "CALL fillMonStats(?)";
     $fillStatsStmt = mysqli_prepare($conn, $fillStatsQuery);
-    mysqli_stmt_bind_param($fillStatsStmt, 'ii', $lastInsertId, $level);
+    mysqli_stmt_bind_param($fillStatsStmt, 'i', $lastInsertId);
     mysqli_stmt_execute($fillStatsStmt);
 }
 

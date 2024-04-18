@@ -32,7 +32,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: calc(16.666% - 20px); /* 16.666% for six cards in one line, subtracting margin */
+    min-width: calc(16.666% - 20px);
     max-width: calc(16.666% - 20px);
     justify-content: center;
     text-align: center;
