@@ -16,11 +16,10 @@ mysqli_stmt_close($stmt);
 
 $lastInsertId = mysqli_insert_id($conn);
 
+$currentHP = getCurrentHP($lastInsertId);
+
 if ($result && $lastInsertId) {
-    $fillStatsQuery = "CALL fillMonStats(?)";
-    $fillStatsStmt = mysqli_prepare($conn, $fillStatsQuery);
-    mysqli_stmt_bind_param($fillStatsStmt, 'i', $lastInsertId);
-    mysqli_stmt_execute($fillStatsStmt);
+    fillMonStats($lastInsertId);
 }
 
 if ($result) {

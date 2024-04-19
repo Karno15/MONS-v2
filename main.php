@@ -47,6 +47,7 @@ session_start();
 </head>
 
 <body>
+    <div class="infobox"></div>
     <div id="container">
         <button id="editbutton">EDIT PROFILE</button>
         <div id="editbox">

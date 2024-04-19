@@ -26,7 +26,7 @@ function createHPView(pokemon) {
     var color = '#ff0000';
     var statusColor = getStatusColor(pokemon.Status);
     pokemon.Status = (pokemon.Status == 'OK') ? '' : pokemon.Status;
-    if (percentageHP > 25) color = '#ffb700';
+    if (percentageHP > 20) color = '#ffb700';
     if (percentageHP > 50) color = '#4caf50';
     return $(`<div>
                 <div class="hpcount pokemon-stat">HP: ${pokemon.HPLeft}/${pokemon.HP}</div>

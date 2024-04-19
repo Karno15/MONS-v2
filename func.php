@@ -51,13 +51,34 @@ function isPartyFull()
     }
 }
 
-function fillMonStats($pokemonId) {
+function fillMonStats($pokemonId)
+{
     global $conn;
+
+    $HP = getCurrentHP($pokemonId);
+    $oldHP = $HP['HP'];
+    $oldHPLeft = $HP['HPLeft'];
 
     $query = "CALL fillMonStats(?)";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
     $success = mysqli_stmt_execute($stmt);
+
+    $newHP = getCurrentHP($pokemonId);
+
+    $HPtoSet = $oldHPLeft + ($newHP['HP'] - $oldHP);
+
+    $query = "UPDATE pokemon SET HPLeft = ? where PokemonId= ? ";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'ii', $HPtoSet, $pokemonId);
+    $success = mysqli_stmt_execute($stmt);
+
+    if ($oldHPLeft <= 0) {
+        $queryupdate = "UPDATE pokemon SET Status = 'OK' where PokemonId= ? ";
+        $stmtupdate = mysqli_prepare($conn, $queryupdate);
+        mysqli_stmt_bind_param($stmtupdate, 'i', $pokemonId);
+        $successupdate = mysqli_stmt_execute($stmtupdate);
+    }
 
     if (!$success) {
         echo "Error executing stored procedure: " . mysqli_error($conn);
@@ -66,7 +87,8 @@ function fillMonStats($pokemonId) {
 }
 
 
-function getPokemonExpDetails($pokemonId) {
+function getPokemonExpDetails($pokemonId)
+{
     global $conn;
 
     $query = 'SELECT p.Level, p.Exp, (e.Exp + e.ExpTNL - p.Exp) AS "ExpTNL"
@@ -74,7 +96,7 @@ function getPokemonExpDetails($pokemonId) {
               JOIN pokedex pk ON pk.PokedexId = p.PokedexId
               JOIN exptype e ON e.Level = p.Level AND pk.ExpType = e.Type
               WHERE pokemonId = ?';
-    
+
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
     mysqli_stmt_execute($stmt);
@@ -97,6 +119,26 @@ function getPokemonExpDetails($pokemonId) {
     }
 }
 
+function canEvolve($pokemonId)
+{
+    global $conn;
+
+    $query = 'SELECT e.PokedexId,e.Name, e.LevelReq,e.NameNew,e.PokedexIdNew 
+              FROM `evos` e JOIN pokemon p ON p.PokedexId=e.PokedexId
+              WHERE EvoType="EXP" AND PokemonId= ? ';
+
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if ($result && mysqli_num_rows($result) > 0) {
+        $rows = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        return $rows[0];
+    } else {
+        return false;
+    }
+}
 
 function playerDefeatedOpponent()
 {
@@ -105,4 +147,22 @@ function playerDefeatedOpponent()
     } else {
         return false;
     }
+}
+
+function getCurrentHP($pokemonId)
+{
+    global $conn;
+
+    $query = "SELECT HP, HPLeft FROM pokemon WHERE PokemonId = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, "i", $pokemonId);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_bind_result($stmt, $HP, $HPLeft);
+    mysqli_stmt_fetch($stmt);
+    mysqli_stmt_close($stmt);
+
+    return array(
+        'HP' => $HP,
+        'HPLeft' => $HPLeft
+    );
 }
