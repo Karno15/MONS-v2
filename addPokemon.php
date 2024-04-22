@@ -27,3 +27,9 @@ if ($result) {
 } else {
     echo json_encode(array('success' => false));
 }
+
+if ($inparty) {
+    addMessage('Pokemon joined the party!');
+} else {
+    addMessage('Team is full! Pokemon was put into the box!');
+}

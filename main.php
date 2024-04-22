@@ -34,6 +34,7 @@ session_start();
                 var pokedexId = $('#addPokemon-PokedexId').val();
                 var level = $('#addPokemon-level').val();
                 addPokemon(pokedexId, level);
+                updateInfobox();
             });
 
 
@@ -41,13 +42,17 @@ session_start();
                 var pokemonId = $('#addexp-pokemonId').val();
                 var exp = $('#addexp-exp').val();
                 addExp(pokemonId, exp);
+                updateInfobox();
             });
+
+            setInterval(updateInfobox, 1000);
         });
     </script>
 </head>
 
 <body>
-    <div class="infobox"></div>
+    <div class="infobox">
+    </div>
     <div id="container">
         <button id="editbutton">EDIT PROFILE</button>
         <div id="editbox">

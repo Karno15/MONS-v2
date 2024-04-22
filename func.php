@@ -1,5 +1,18 @@
 <?php
 
+function addMessage($message) {
+    if (!isset($_SESSION['messages'])) {
+        $_SESSION['messages'] = [];
+    }
+
+    array_unshift($_SESSION['messages'], $message);
+
+    $maxMessages = 5;
+    if (count($_SESSION['messages']) > $maxMessages) {
+        array_pop($_SESSION['messages']);
+    }
+}
+
 function getAvatarPath($userId)
 {
     global $conn;
@@ -140,13 +153,19 @@ function canEvolve($pokemonId)
     }
 }
 
-function playerDefeatedOpponent()
+function fillMonMoves($pokemonId) 
 {
-    if (isset($_SESSION['addexp']) && $_SESSION['addexp']) {
-        return true;
-    } else {
-        return false;
-    }
+    global $conn;
+
+    $query = 'SELECT e.PokedexId,e.Name, e.LevelReq,e.NameNew,e.PokedexIdNew 
+              FROM `evos` e JOIN pokemon p ON p.PokedexId=e.PokedexId
+              WHERE EvoType="EXP" AND PokemonId= ? ';
+
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
 }
 
 function getCurrentHP($pokemonId)
@@ -165,4 +184,13 @@ function getCurrentHP($pokemonId)
         'HP' => $HP,
         'HPLeft' => $HPLeft
     );
+}
+
+function playerDefeatedOpponent()
+{
+    if (isset($_SESSION['addexp']) && $_SESSION['addexp']) {
+        return true;
+    } else {
+        return false;
+    }
 }

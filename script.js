@@ -133,3 +133,16 @@ function defeat() {
 
     document.getElementById('test').innerHTML = userId;
 }
+
+function updateInfobox() {
+    $.ajax({
+        url: 'getInfo.php',
+        type: 'GET',
+        success: function(response) {
+            $('.infobox').html(response);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching infobox content:', error);
+        }
+    })
+}

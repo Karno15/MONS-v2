@@ -1,0 +1,8 @@
+{
+    "name": "mons/webscoket",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "cboden/ratchet": "^0.4.4"
+    }
+}
