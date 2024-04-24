@@ -37,15 +37,33 @@ session_start();
                 updateInfobox();
             });
 
+            const socket = new WebSocket('ws://localhost:8080');
 
-            $('#addExp').click(function() {
-                var pokemonId = $('#addexp-pokemonId').val();
-                var exp = $('#addexp-exp').val();
-                addExp(pokemonId, exp);
-                updateInfobox();
+            socket.addEventListener('open', function (event) {
+                console.log('Connected to server');
+            });
+            
+            socket.addEventListener('close', function (event) {
+                console.log('Disconnected from WebSocket server');
             });
 
-            setInterval(updateInfobox, 1000);
+            $('#addExp').on('click', function() {
+                const pokemonId = $('#addexp-pokemonId').val();
+                const exp = $('#addexp-exp').val();
+                if (pokemonId && exp) {
+                    const data = {
+                        type: 'grant_exp',
+                        pokemonId: pokemonId,
+                        exp: exp
+                    };
+                    socket.send(JSON.stringify(data));
+                    getPartyPokemon();
+                } else {
+                    alert('Please enter Pokemon ID and Exp');
+                }
+            });
+
+            
         });
     </script>
 </head>
