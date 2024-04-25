@@ -1,3 +1,8 @@
+function getCookie(name) {
+    const cookieValue = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return cookieValue ? cookieValue.pop() : '';
+}
+
 function getPartyPokemon() {
     $.ajax({
         url: 'getPartyPokemon.php',

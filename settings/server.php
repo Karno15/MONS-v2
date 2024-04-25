@@ -1,9 +1,8 @@
 <?php
+
 require 'conn.php';
 require '../func.php';
 require __DIR__ . '/../ratchet/vendor/autoload.php';
-
-session_start();
 
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
@@ -28,14 +27,34 @@ class MyWebSocketServer implements MessageComponentInterface
 
     public function onMessage(ConnectionInterface $from, $msg)
     {
-        global $conn;
         echo "Received message from client {$from->resourceId}: $msg\n";
         $data = json_decode($msg, true);
-        if ($data && isset($data['type']) && $data['type'] === 'grant_exp' && isset($data['pokemonId']) && isset($data['exp'])) {
-            $pokemonId = $data['pokemonId'];
-            $expgained = $data['exp'];
 
-            addExp($pokemonId,$expgained);
+        if (!isValidToken($data)) {
+            $from->close();
+            return;
+        }
+
+        if ($data && isset($data['type'])) {
+            switch ($data['type']) {
+                case 'grant_exp':
+                    if (isset($data['pokemonId']) && isset($data['exp'])) {
+                        $pokemonId = $data['pokemonId'];
+                        $expgained = $data['exp'];
+                        addExp($pokemonId, $expgained);
+                    }
+                    break;
+                case 'add_mon':
+                    if (isset($data['pokedexId']) && isset($data['level'])) {
+                        $pokedexId = $data['pokedexId'];
+                        $level = $data['level'];
+                        addMon($pokedexId, $level, $data['token']);
+                    }
+                    break;
+                default:
+                    echo "Invalid!";
+                    break;
+            }
         }
     }
 

@@ -1,5 +1,47 @@
 <?php
 
+function generateToken($userId, $login, $uid) {
+    $creationDate = date('Y-m-d H:i:s');
+    $tokenData = array(
+        'userid' => $userId,
+        'login' => $login,
+        'uid' => $uid,
+        'created' => $creationDate
+    );
+    $token = base64_encode(json_encode($tokenData));
+    return $token;
+}
+
+function isValidToken($data)
+{
+    if (!isset($data['token'])) {
+        return false;
+    }
+
+    $token = $data['token'];
+    $tokenData = getTokenData($token);
+
+    if (!isset($tokenData['created'])) {
+        return false;
+    }
+
+    $creationDate = strtotime($tokenData['created']);
+
+    if (time() - $creationDate <= 1800) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function getTokenData($token)
+{
+    $decodedToken = base64_decode($token);
+    $tokenData = json_decode($decodedToken, true);
+
+    return $tokenData;
+}
+
 function addMessage($message)
 {
     if (!isset($_SESSION['messages'])) {
@@ -41,13 +83,12 @@ function getSignature($userId)
     return $signature;
 }
 
-function isPartyFull()
+function isPartyFull($userId)
 {
     global $conn;
 
     $query = "CALL showPartyData(?)";
     $stmt = mysqli_prepare($conn, $query);
-    $userId = $_SESSION["userid"];
     mysqli_stmt_bind_param($stmt, 'i', $userId);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
@@ -252,8 +293,44 @@ function addExp($pokemonId, $expgained)
             $expdet = getPokemonExpDetails($pokemonId);
         }
 
-        echo json_encode(array('success' => true));
+        echo json_encode(array('success' => true))."\n";
     } else {
         echo "Error: " . $expdet['message'];
+    }
+}
+
+function addMon($pokedexId, $level, $token)
+{
+    global $conn;
+
+    $tokenData = getTokenData($token);
+    $userId = $tokenData['userid'];
+    $inparty = isPartyFull($userId);
+
+    $query = "INSERT INTO pokemon (`UserId`, `PokedexId`, `Level`, `Status`, `ItemHeld`, `inParty`, `Released`) 
+          VALUES (?, ?, ?, 'OK', 0, ?, 0)";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'iiii', $userId, $pokedexId, $level, $inparty);
+    $result = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    $lastInsertId = mysqli_insert_id($conn);
+
+    $currentHP = getCurrentHP($lastInsertId);
+
+    if ($result && $lastInsertId) {
+        fillMonStats($lastInsertId);
+    }
+
+    if ($result) {
+        echo json_encode(array('success' => true));
+    } else {
+        echo json_encode(array('success' => false));
+    }
+
+    if ($inparty) {
+        addMessage('Pokemon joined the party!');
+    } else {
+        addMessage('Team is full! Pokemon was put into the box!');
     }
 }

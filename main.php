@@ -1,7 +1,13 @@
 <?php
+
+session_start();
+
 require 'settings/conn.php';
 require 'func.php';
-session_start();
+
+$token = generateToken($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"]);
+            
+setcookie("token", $token, time() + (86400 * 30), "/");
 
 ?>
 
@@ -16,9 +22,12 @@ session_start();
     <script src="script.js"></script>
     <script>
         $(document).ready(function() {
+            var token = getCookie('token');
+
             $("#editbutton").click(function() {
                 $('#editbox').show();
             })
+
             $("#closeedit").click(function() {
                 $('#editbox').hide();
             })
@@ -30,21 +39,14 @@ session_start();
 
             getPartyPokemon();
 
-            $('#addPokemon').click(function() {
-                var pokedexId = $('#addPokemon-PokedexId').val();
-                var level = $('#addPokemon-level').val();
-                addPokemon(pokedexId, level);
-                updateInfobox();
-            });
-
             const socket = new WebSocket('ws://localhost:8080');
 
             socket.addEventListener('open', function (event) {
-                console.log('Connected to server');
+                console.log('Connected to the server');
             });
             
             socket.addEventListener('close', function (event) {
-                console.log('Disconnected from WebSocket server');
+                console.log('Disconnected from the server');
             });
 
             $('#addExp').on('click', function() {
@@ -54,7 +56,8 @@ session_start();
                     const data = {
                         type: 'grant_exp',
                         pokemonId: pokemonId,
-                        exp: exp
+                        exp: exp,
+                        token: token
                     };
                     socket.send(JSON.stringify(data));
                     getPartyPokemon();
@@ -63,6 +66,24 @@ session_start();
                 }
             });
 
+            $('#addPokemon').click(function() {
+                const pokedexId = $('#addPokemon-PokedexId').val();
+                const level = $('#addPokemon-level').val();
+                console.log(token);
+
+                if (pokedexId && level) {
+                    const data = {
+                        type: 'add_mon',
+                        pokedexId: pokedexId,
+                        level: level,
+                        token: token
+                    };
+                    socket.send(JSON.stringify(data));
+                    getPartyPokemon();
+                } else {
+                    alert('Please enter pokedex ID and level');
+                }
+            });
             
         });
     </script>
@@ -72,7 +93,7 @@ session_start();
     <div class="infobox">
     </div>
     <div id="container">
-        <button id="editbutton">EDIT PROFILE</button>
+        <button id="editbutton">EDIT PROFILE</button><a href="logout.php">LOGOUT</a>
         <div id="editbox">
             <button id="closeedit">X</button>
             <form action="editprofile.php" method="POST" enctype="multipart/form-data">

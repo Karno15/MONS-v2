@@ -22,6 +22,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION["uid"] = $row["uid"];
             $_SESSION["userid"] = $row["userid"];
             $_SESSION["login"] = $row["login"];
+            
+            $token = generateToken($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"]);
+            
+            setcookie("token", $token, time() + (86400 * 30), "/");
+            
             header("Location: main.php");
             exit;
         } else {
@@ -36,3 +41,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     header("Location: index.php");
     exit;
 }
+?>
