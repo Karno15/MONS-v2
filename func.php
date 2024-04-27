@@ -1,6 +1,7 @@
 <?php
 
-function generateToken($userId, $login, $uid) {
+function generateToken($userId, $login, $uid)
+{
     $creationDate = date('Y-m-d H:i:s');
     $tokenData = array(
         'userid' => $userId,
@@ -41,6 +42,25 @@ function getTokenData($token)
 
     return $tokenData;
 }
+
+function logClientMessage($clientId, $message)
+{
+    $timestamp = date('Y-m-d H:i:s');
+    $logEntry = "[$timestamp][INFO]Client $clientId: $message" . PHP_EOL;
+    //to uncomment after releasing
+
+    //file_put_contents('../logs/logs.log', $logEntry, FILE_APPEND);
+}
+
+function logServerMessage($message, $label = 'INFO')
+{
+    $timestamp = date('Y-m-d H:i:s');
+    $logEntry = "[$timestamp][$label]Server: $message" . PHP_EOL;
+    //to uncomment after releasing
+
+    //file_put_contents('../logs/logs.log', $logEntry, FILE_APPEND);
+}
+
 
 function addMessage($message)
 {
@@ -227,15 +247,6 @@ function getCurrentHP($pokemonId)
     );
 }
 
-function playerDefeatedOpponent()
-{
-    if (isset($_SESSION['addexp']) && $_SESSION['addexp']) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
 function addExp($pokemonId, $expgained)
 {
     global $conn;
@@ -275,8 +286,10 @@ function addExp($pokemonId, $expgained)
                         echo json_encode(array('success' => false, 'message' => 'Can\'t evolve'));
                     }
 
-                    $evoInfo = $evo['Name'] . ' evolved into ' . $evo['NameNew'];
+                    $evoInfo = $evo['Name'] . '(' . $pokemonId . ')' . ' evolved into ' . $evo['NameNew'];
                     echo $evoInfo;
+                    logServerMessage($evoInfo);
+                    addMessage($evoInfo);
                 }
 
                 fillMonStats($pokemonId);
@@ -293,7 +306,7 @@ function addExp($pokemonId, $expgained)
             $expdet = getPokemonExpDetails($pokemonId);
         }
 
-        echo json_encode(array('success' => true))."\n";
+        echo json_encode(array('success' => true)) . "\n";
     } else {
         echo "Error: " . $expdet['message'];
     }

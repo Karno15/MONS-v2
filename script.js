@@ -4,12 +4,29 @@ function getCookie(name) {
 }
 
 function getPartyPokemon() {
+
     $.ajax({
         url: 'getPartyPokemon.php',
         method: 'GET',
         dataType: 'json',
         success: function (response) {
-            displayPokemon(response);
+            var container = $('#pokemon-container');
+            displayPokemon(response, container);
+        },
+        error: function (xhr, status, error) {
+            console.error('Error fetching Pokemon data:', error);
+        }
+    });
+}
+
+function getBoxPokemon() {
+    $.ajax({
+        url: 'getBoxPokemon.php',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            var container = $('#box-container');
+            displayPokemon(response, container);
         },
         error: function (xhr, status, error) {
             console.error('Error fetching Pokemon data:', error);
@@ -73,9 +90,7 @@ function getStatusColor(status) {
     return statusColorMap[status] || 'transparent';
 }
 
-function displayPokemon(data) {
-    var container = $('#pokemon-container');
-
+function displayPokemon(data, container) {
     container.empty();
 
     data.forEach(function (pokemon) {
@@ -101,6 +116,7 @@ function addPokemon(pokedexId, level) {
         success: function (response) {
             if (response.success) {
                 getPartyPokemon();
+                getBoxPokemon();
             } else {
                 alert('Failed to add Pokemon.');
             }
@@ -124,6 +140,7 @@ function addExp(pokemonId, exp) {
         success: function (response) {
             if (response.success) {
                 getPartyPokemon();
+                getBoxPokemon();
             } else {
                 alert('Failed to add Exp.');
             }
@@ -143,10 +160,10 @@ function updateInfobox() {
     $.ajax({
         url: 'getInfo.php',
         type: 'GET',
-        success: function(response) {
+        success: function (response) {
             $('.infobox').html(response);
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
             console.error('Error fetching infobox content:', error);
         }
     })

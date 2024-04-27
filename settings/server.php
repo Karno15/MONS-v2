@@ -23,14 +23,20 @@ class MyWebSocketServer implements MessageComponentInterface
     {
         $this->clients->attach($conn);
         echo "New connection! ({$conn->resourceId})\n";
+        logServerMessage("New connection! ({$conn->resourceId})");
+
     }
 
     public function onMessage(ConnectionInterface $from, $msg)
     {
         echo "Received message from client {$from->resourceId}: $msg\n";
+        logClientMessage($from->resourceId, $msg);
+
         $data = json_decode($msg, true);
 
         if (!isValidToken($data)) {
+            logServerMessage("Invalid token received from client {$from->resourceId}", 'ERROR');
+            echo "Invalid token received from client {$from->resourceId}";
             $from->close();
             return;
         }
@@ -52,7 +58,9 @@ class MyWebSocketServer implements MessageComponentInterface
                     }
                     break;
                 default:
-                    echo "Invalid!";
+                    echo "Invalid message type received from client {$from->resourceId}";
+                    logServerMessage("Invalid message type received from client {$from->resourceId}", 'ERROR');
+
                     break;
             }
         }
@@ -62,11 +70,15 @@ class MyWebSocketServer implements MessageComponentInterface
     {
         $this->clients->detach($conn);
         echo "Connection {$conn->resourceId} has disconnected\n";
+        logServerMessage("Connection {$conn->resourceId} has disconnected");
+
     }
 
     public function onError(ConnectionInterface $conn, \Exception $e)
     {
         echo "An error has occurred: {$e->getMessage()}\n";
+        logServerMessage("An error has occurred: {$e->getMessage()}", 'ERROR');
+
         $conn->close();
     }
 }
@@ -78,5 +90,6 @@ $httpServer = new HttpServer($webSocketServer);
 $server = IoServer::factory($httpServer, 8080);
 
 echo "Server started at ws://127.0.0.1:8080\n";
+logServerMessage("Server started at ws://127.0.0.1:8080");
 
 $server->run();

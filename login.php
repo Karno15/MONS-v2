@@ -1,5 +1,6 @@
 <?php
 require_once "settings/conn.php";
+require 'func.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($_POST["login"]) || empty($_POST["password"])) {

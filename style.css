@@ -16,7 +16,7 @@ body {
     width: 100px;
 }
 
-#pokemon-container {
+#pokemon-container, #box-container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;

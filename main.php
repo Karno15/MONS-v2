@@ -38,6 +38,7 @@ setcookie("token", $token, time() + (86400 * 30), "/");
             });
 
             getPartyPokemon();
+            getBoxPokemon();
 
             const socket = new WebSocket('ws://localhost:8080');
 
@@ -61,6 +62,7 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                     };
                     socket.send(JSON.stringify(data));
                     getPartyPokemon();
+                    getBoxPokemon();
                 } else {
                     alert('Please enter Pokemon ID and Exp');
                 }
@@ -69,7 +71,6 @@ setcookie("token", $token, time() + (86400 * 30), "/");
             $('#addPokemon').click(function() {
                 const pokedexId = $('#addPokemon-PokedexId').val();
                 const level = $('#addPokemon-level').val();
-                console.log(token);
 
                 if (pokedexId && level) {
                     const data = {
@@ -80,6 +81,7 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                     };
                     socket.send(JSON.stringify(data));
                     getPartyPokemon();
+                    getBoxPokemon();
                 } else {
                     alert('Please enter pokedex ID and level');
                 }
@@ -126,7 +128,9 @@ setcookie("token", $token, time() + (86400 * 30), "/");
             Exp:<input type="number" id="addexp-exp">
             <br>
             <button id="addExp">Add Exp</button>
-        </p>
+        </p><hr>
+        <p>Box Pokemon</p>
+        <div id="box-container"></div>
         <div id="test"></div>
     </div>
 </body>
