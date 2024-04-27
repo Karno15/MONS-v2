@@ -6,7 +6,7 @@ require 'settings/conn.php';
 require 'func.php';
 
 $token = generateToken($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"]);
-            
+
 setcookie("token", $token, time() + (86400 * 30), "/");
 
 ?>
@@ -42,11 +42,11 @@ setcookie("token", $token, time() + (86400 * 30), "/");
 
             const socket = new WebSocket('ws://localhost:8080');
 
-            socket.addEventListener('open', function (event) {
+            socket.addEventListener('open', function(event) {
                 console.log('Connected to the server');
             });
-            
-            socket.addEventListener('close', function (event) {
+
+            socket.addEventListener('close', function(event) {
                 console.log('Disconnected from the server');
             });
 
@@ -86,7 +86,21 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                     alert('Please enter pokedex ID and level');
                 }
             });
-            
+
+            $(document).on('click', '.release-btn', function() {
+                var pokemonId = $(this).data('pokemon-id');
+                var confirmRelease = confirm("Are you sure you want to release this Pokémon?");
+                if (confirmRelease) {
+                    var data = {
+                        type: 'release_pokemon',
+                        pokemonId: pokemonId,
+                        token: token
+                    };
+                    socket.send(JSON.stringify(data));
+                    getPartyPokemon();
+                    getBoxPokemon();
+                }
+            });
         });
     </script>
 </head>
@@ -128,7 +142,8 @@ setcookie("token", $token, time() + (86400 * 30), "/");
             Exp:<input type="number" id="addexp-exp">
             <br>
             <button id="addExp">Add Exp</button>
-        </p><hr>
+        </p>
+        <hr>
         <p>Box Pokemon</p>
         <div id="box-container"></div>
         <div id="test"></div>

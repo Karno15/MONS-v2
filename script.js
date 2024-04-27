@@ -99,6 +99,7 @@ function displayPokemon(data, container) {
         card.append(createHPView(pokemon));
         card.append(createStatsView(pokemon));
         card.append(createExpView(pokemon));
+        card.append('<button class="release-btn" data-pokemon-id='+pokemon.PokemonId+'>Release</button>');
         container.append(card);
     });
 }
@@ -149,11 +150,6 @@ function addExp(pokemonId, exp) {
             console.error('Error adding Exp:', error);
         }
     });
-}
-function defeat() {
-    var userId = '<?php echo json_encode($_SESSION["userid"]); ?>';
-
-    document.getElementById('test').innerHTML = userId;
 }
 
 function updateInfobox() {

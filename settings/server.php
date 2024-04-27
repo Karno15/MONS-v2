@@ -24,7 +24,6 @@ class MyWebSocketServer implements MessageComponentInterface
         $this->clients->attach($conn);
         echo "New connection! ({$conn->resourceId})\n";
         logServerMessage("New connection! ({$conn->resourceId})");
-
     }
 
     public function onMessage(ConnectionInterface $from, $msg)
@@ -47,7 +46,7 @@ class MyWebSocketServer implements MessageComponentInterface
                     if (isset($data['pokemonId']) && isset($data['exp'])) {
                         $pokemonId = $data['pokemonId'];
                         $expgained = $data['exp'];
-                        addExp($pokemonId, $expgained);
+                        addExp($pokemonId, $expgained, $data['token']);
                     }
                     break;
                 case 'add_mon':
@@ -55,6 +54,12 @@ class MyWebSocketServer implements MessageComponentInterface
                         $pokedexId = $data['pokedexId'];
                         $level = $data['level'];
                         addMon($pokedexId, $level, $data['token']);
+                    }
+                    break;
+                case 'release_pokemon':
+                    if (isset($data['pokemonId'])) {
+                        $pokemonId = $data['pokemonId'];
+                        releasePokemon($pokemonId, $data['token']);
                     }
                     break;
                 default:
@@ -71,7 +76,6 @@ class MyWebSocketServer implements MessageComponentInterface
         $this->clients->detach($conn);
         echo "Connection {$conn->resourceId} has disconnected\n";
         logServerMessage("Connection {$conn->resourceId} has disconnected");
-
     }
 
     public function onError(ConnectionInterface $conn, \Exception $e)

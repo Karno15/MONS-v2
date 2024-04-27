@@ -103,6 +103,25 @@ function getSignature($userId)
     return $signature;
 }
 
+function belongsToUser($pokemonId, $token)
+{
+    global $conn;
+
+    $tokenData = getTokenData($token);
+    $userId = $tokenData['userid'];
+
+    $stmt = $conn->prepare("SELECT UserId FROM pokemon WHERE PokemonId = ?");
+    $stmt->bind_param("i", $pokemonId);
+    $stmt->execute();
+    $stmt->bind_result($ownerUserId);
+    $stmt->fetch();
+    $stmt->close();
+
+    return $ownerUserId == $userId;
+}
+
+
+
 function isPartyFull($userId)
 {
     global $conn;
@@ -247,68 +266,73 @@ function getCurrentHP($pokemonId)
     );
 }
 
-function addExp($pokemonId, $expgained)
+function addExp($pokemonId, $expgained, $token)
 {
     global $conn;
 
-    $expdet = getPokemonExpDetails($pokemonId);
-    $maxlevel = 100;
+    if (!belongsToUser($pokemonId, $token)) {
+        echo json_encode(array('success' => false, 'message' => 'Pokemon does not belogns to user!')) . "\n";
+        return false;
+    } else {
+        $expdet = getPokemonExpDetails($pokemonId);
+        $maxlevel = 100;
 
-    if ($expdet['success']) {
-        while ($expgained > 0 && $expdet['level'] < $maxlevel) {
-            $expTNL = $expdet['expTNL'];
-            $level = $expdet['level'];
-            if ($expgained >= $expTNL) {
-                $querylvl = "UPDATE pokemon SET Level = (Level + 1) WHERE PokemonId = ?";
-                $stmtlvl = mysqli_prepare($conn, $querylvl);
-                mysqli_stmt_bind_param($stmtlvl, 'i', $pokemonId);
-                $resultlvl = mysqli_stmt_execute($stmtlvl);
-                mysqli_stmt_close($stmtlvl);
-                if (!$resultlvl) {
-                    echo json_encode(array('success' => false, 'message' => 'Can\'t level up'));
-                }
-                $expgained -= $expTNL;
-                if ($expdet['level'] == $maxlevel - 1) {
-                    $expToAdd = 0;
-                } else {
-                    $expToAdd = min($expTNL, $expgained);
-                }
-                $level++;
-                $evo = canEvolve($pokemonId);
+        if ($expdet['success']) {
+            while ($expgained > 0 && $expdet['level'] < $maxlevel) {
+                $expTNL = $expdet['expTNL'];
+                $level = $expdet['level'];
+                if ($expgained >= $expTNL) {
+                    $querylvl = "UPDATE pokemon SET Level = (Level + 1) WHERE PokemonId = ?";
+                    $stmtlvl = mysqli_prepare($conn, $querylvl);
+                    mysqli_stmt_bind_param($stmtlvl, 'i', $pokemonId);
+                    $resultlvl = mysqli_stmt_execute($stmtlvl);
+                    mysqli_stmt_close($stmtlvl);
+                    if (!$resultlvl) {
+                        echo json_encode(array('success' => false, 'message' => 'Can\'t level up' . "\n"));
+                    }
+                    $expgained -= $expTNL;
+                    if ($expdet['level'] == $maxlevel - 1) {
+                        $expToAdd = 0;
+                    } else {
+                        $expToAdd = min($expTNL, $expgained);
+                    }
+                    $level++;
+                    $evo = canEvolve($pokemonId);
 
-                if ($evo && $evo['LevelReq'] <= $level) {
-                    $queryevo = "UPDATE pokemon SET PokedexId= ? WHERE PokemonId = ?";
-                    $stmtevo = mysqli_prepare($conn, $queryevo);
-                    mysqli_stmt_bind_param($stmtevo, 'ii', $evo['PokedexIdNew'], $pokemonId);
-                    $resultevo = mysqli_stmt_execute($stmtevo);
-                    mysqli_stmt_close($stmtevo);
-                    if (!$resultevo) {
-                        echo json_encode(array('success' => false, 'message' => 'Can\'t evolve'));
+                    if ($evo && $evo['LevelReq'] <= $level) {
+                        $queryevo = "UPDATE pokemon SET PokedexId= ? WHERE PokemonId = ?";
+                        $stmtevo = mysqli_prepare($conn, $queryevo);
+                        mysqli_stmt_bind_param($stmtevo, 'ii', $evo['PokedexIdNew'], $pokemonId);
+                        $resultevo = mysqli_stmt_execute($stmtevo);
+                        mysqli_stmt_close($stmtevo);
+                        if (!$resultevo) {
+                            echo json_encode(array('success' => false, 'message' => 'Can\'t evolve'));
+                        }
+
+                        $evoInfo = $evo['Name'] . '(' . $pokemonId . ')' . ' evolved into ' . $evo['NameNew'];
+                        echo $evoInfo;
+                        logServerMessage($evoInfo);
+                        addMessage($evoInfo);
                     }
 
-                    $evoInfo = $evo['Name'] . '(' . $pokemonId . ')' . ' evolved into ' . $evo['NameNew'];
-                    echo $evoInfo;
-                    logServerMessage($evoInfo);
-                    addMessage($evoInfo);
+                    fillMonStats($pokemonId);
+                } else {
+                    $expToAdd = $expgained;
+                    $expgained = 0;
                 }
+                $queryexp = "UPDATE pokemon SET Exp = Exp + ? WHERE PokemonId = ?";
+                $stmtexp = mysqli_prepare($conn, $queryexp);
+                mysqli_stmt_bind_param($stmtexp, 'ii', $expToAdd, $pokemonId);
+                $resultexp = mysqli_stmt_execute($stmtexp);
+                mysqli_stmt_close($stmtexp);
 
-                fillMonStats($pokemonId);
-            } else {
-                $expToAdd = $expgained;
-                $expgained = 0;
+                $expdet = getPokemonExpDetails($pokemonId);
             }
-            $queryexp = "UPDATE pokemon SET Exp = Exp + ? WHERE PokemonId = ?";
-            $stmtexp = mysqli_prepare($conn, $queryexp);
-            mysqli_stmt_bind_param($stmtexp, 'ii', $expToAdd, $pokemonId);
-            $resultexp = mysqli_stmt_execute($stmtexp);
-            mysqli_stmt_close($stmtexp);
 
-            $expdet = getPokemonExpDetails($pokemonId);
+            echo json_encode(array('success' => true)) . "\n";
+        } else {
+            echo json_encode(array('success' => false, 'message' => $expdet['message'])) . "\n";
         }
-
-        echo json_encode(array('success' => true)) . "\n";
-    } else {
-        echo "Error: " . $expdet['message'];
     }
 }
 
@@ -336,14 +360,34 @@ function addMon($pokedexId, $level, $token)
     }
 
     if ($result) {
-        echo json_encode(array('success' => true));
+        echo json_encode(array('success' => true)) . "\n";
     } else {
-        echo json_encode(array('success' => false));
+        echo json_encode(array('success' => false)) . "\n";
     }
 
     if ($inparty) {
         addMessage('Pokemon joined the party!');
     } else {
         addMessage('Team is full! Pokemon was put into the box!');
+    }
+}
+
+function releasePokemon($pokemonId, $token)
+{
+    global $conn;
+
+    if (!belongsToUser($pokemonId, $token)) {
+        echo json_encode(array('success' => false, 'message' => 'Pokemon does not belogns to user!')) . "\n";
+        return false;
+    } else {
+        $query = "UPDATE pokemon SET Released = 1 WHERE PokemonId = ?";
+        $stmt = mysqli_prepare($conn, $query);
+        mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+        $result = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        echo json_encode(array('success' => true)) . "\n";
+        logServerMessage("Released Pokémon with ID: $pokemonId", 'INFO');
+        return $result;
     }
 }
