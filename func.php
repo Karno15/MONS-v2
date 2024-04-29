@@ -291,12 +291,9 @@ function addExp($pokemonId, $expgained, $token)
                         echo json_encode(array('success' => false, 'message' => 'Can\'t level up' . "\n"));
                     }
                     $expgained -= $expTNL;
-                    if ($expdet['level'] == $maxlevel - 1) {
-                        $expToAdd = 0;
-                    } else {
-                        $expToAdd = min($expTNL, $expgained);
-                    }
+                    $expToAdd = 0;
                     $level++;
+
                     $evo = canEvolve($pokemonId);
 
                     if ($evo && $evo['LevelReq'] <= $level) {
@@ -308,13 +305,13 @@ function addExp($pokemonId, $expgained, $token)
                         if (!$resultevo) {
                             echo json_encode(array('success' => false, 'message' => 'Can\'t evolve'));
                         }
-
+        
                         $evoInfo = $evo['Name'] . '(' . $pokemonId . ')' . ' evolved into ' . $evo['NameNew'];
                         echo $evoInfo;
                         logServerMessage($evoInfo);
                         addMessage($evoInfo);
                     }
-
+                    
                     fillMonStats($pokemonId);
                 } else {
                     $expToAdd = $expgained;

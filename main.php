@@ -61,8 +61,10 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                         token: token
                     };
                     socket.send(JSON.stringify(data));
-                    getPartyPokemon();
-                    getBoxPokemon();
+                    setTimeout(function() {
+                        getPartyPokemon();
+                        getBoxPokemon();
+                    }, 200);
                 } else {
                     alert('Please enter Pokemon ID and Exp');
                 }

@@ -104,54 +104,6 @@ function displayPokemon(data, container) {
     });
 }
 
-
-function addPokemon(pokedexId, level) {
-    $.ajax({
-        url: 'addPokemon.php',
-        method: 'POST',
-        data: {
-            pokedexId: pokedexId,
-            level: level
-        },
-        dataType: 'json',
-        success: function (response) {
-            if (response.success) {
-                getPartyPokemon();
-                getBoxPokemon();
-            } else {
-                alert('Failed to add Pokemon.');
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error('Error adding Pokemon:', error);
-        }
-    });
-}
-
-function addExp(pokemonId, exp) {
-    defeat();
-    $.ajax({
-        url: 'addExp.php',
-        method: 'POST',
-        data: {
-            pokemonId: pokemonId,
-            exp: exp
-        },
-        dataType: 'json',
-        success: function (response) {
-            if (response.success) {
-                getPartyPokemon();
-                getBoxPokemon();
-            } else {
-                alert('Failed to add Exp.');
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error('Error adding Exp:', error);
-        }
-    });
-}
-
 function updateInfobox() {
     $.ajax({
         url: 'getInfo.php',
