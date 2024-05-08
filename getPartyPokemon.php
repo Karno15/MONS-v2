@@ -22,7 +22,24 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 mysqli_stmt_close($stmt);
 
-if ($pokemonData !== false) {
+// Fetch moves for each Pokemon
+foreach ($pokemonData as &$pokemon) {
+    $pokemonId = $pokemon['PokemonId'];
+    $movesQuery = "CALL showPokemonMoves(?)";
+    $movesStmt = mysqli_prepare($conn, $movesQuery);
+    mysqli_stmt_bind_param($movesStmt, 'i', $pokemonId);
+    mysqli_stmt_execute($movesStmt);
+    $movesResult = mysqli_stmt_get_result($movesStmt);
+    $movesData = array();
+    while ($movesRow = mysqli_fetch_assoc($movesResult)) {
+        $movesData[] = $movesRow;
+    }
+    mysqli_stmt_close($movesStmt);
+    // Append moves data to the respective Pokemon
+    $pokemon['Moves'] = $movesData;
+}
+
+if (!empty($pokemonData)) {
     header('Content-Type: application/json');
     echo json_encode($pokemonData);
 } else {

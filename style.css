@@ -120,3 +120,39 @@ body {
     margin: 10px;
     width: 300px;
 }
+
+.moves-container {
+    margin-top: 10px;
+}
+
+.move-card {
+    flex: 0 0 100%;
+    height: auto;
+    position: relative;
+}
+
+.move-name {
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    border: 1px solid white;
+    padding: 5px;
+    min-width: 100px;
+    margin-bottom: 5px;
+    width: 100%;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.move-info {
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    max-width: 200px;
+}

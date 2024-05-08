@@ -149,36 +149,53 @@ function fillMonStats($pokemonId)
 {
     global $conn;
 
-    $HP = getCurrentHP($pokemonId);
-    $oldHP = $HP['HP'];
-    $oldHPLeft = $HP['HPLeft'];
-
     $query = "CALL fillMonStats(?)";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
     $success = mysqli_stmt_execute($stmt);
 
-    $newHP = getCurrentHP($pokemonId);
+    if (!$success) {
+        echo "Error executing stored procedure: " . mysqli_error($conn);
+        return;
+    }
 
-    $HPtoSet = $oldHPLeft + ($newHP['HP'] - $oldHP);
+    mysqli_stmt_close($stmt);
 
-    $query = "UPDATE pokemon SET HPLeft = ? where PokemonId= ? ";
+    while (mysqli_more_results($conn)) {
+        mysqli_next_result($conn);
+        if ($result = mysqli_store_result($conn)) {
+            mysqli_free_result($result);
+        }
+    }
+
+    $HP = getCurrentHP($pokemonId);
+    $oldHP = $HP['HP'];
+    $oldHPLeft = $HP['HPLeft'];
+    $HPtoSet = $oldHPLeft + ($HP['HP'] - $oldHP);
+
+    $query = "UPDATE pokemon SET HPLeft = ? WHERE PokemonId = ?";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'ii', $HPtoSet, $pokemonId);
     $success = mysqli_stmt_execute($stmt);
 
+    if (!$success) {
+        echo "Error updating HPLeft: " . mysqli_error($conn);
+    }
+    mysqli_stmt_close($stmt);
+
     if ($oldHPLeft <= 0) {
-        $queryupdate = "UPDATE pokemon SET Status = 'OK' where PokemonId= ? ";
+        $queryupdate = "UPDATE pokemon SET Status = 'OK' WHERE PokemonId = ?";
         $stmtupdate = mysqli_prepare($conn, $queryupdate);
         mysqli_stmt_bind_param($stmtupdate, 'i', $pokemonId);
         $successupdate = mysqli_stmt_execute($stmtupdate);
-    }
 
-    if (!$success) {
-        echo "Error executing stored procedure: " . mysqli_error($conn);
+        if (!$successupdate) {
+            echo "Error updating status: " . mysqli_error($conn);
+        }
+        mysqli_stmt_close($stmtupdate);
     }
-    mysqli_stmt_close($stmt);
 }
+
 
 
 function getPokemonExpDetails($pokemonId)
@@ -305,13 +322,13 @@ function addExp($pokemonId, $expgained, $token)
                         if (!$resultevo) {
                             echo json_encode(array('success' => false, 'message' => 'Can\'t evolve'));
                         }
-        
+
                         $evoInfo = $evo['Name'] . '(' . $pokemonId . ')' . ' evolved into ' . $evo['NameNew'];
                         echo $evoInfo;
                         logServerMessage($evoInfo);
                         addMessage($evoInfo);
                     }
-                    
+
                     fillMonStats($pokemonId);
                 } else {
                     $expToAdd = $expgained;
@@ -352,6 +369,8 @@ function addMon($pokedexId, $level, $token)
 
     $currentHP = getCurrentHP($lastInsertId);
 
+    checkMove($lastInsertId, $token);
+
     if ($result && $lastInsertId) {
         fillMonStats($lastInsertId);
     }
@@ -377,7 +396,7 @@ function releasePokemon($pokemonId, $token)
         echo json_encode(array('success' => false, 'message' => 'Pokemon does not belogns to user!')) . "\n";
         return false;
     } else {
-        $query = "UPDATE pokemon SET Released = 1 WHERE PokemonId = ?";
+        $query = "UPDATE pokemon SET Released = 1, ReleaseDate = CURRENT_TIMESTAMP() WHERE PokemonId = ?";
         $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
         $result = mysqli_stmt_execute($stmt);
@@ -386,5 +405,44 @@ function releasePokemon($pokemonId, $token)
         echo json_encode(array('success' => true)) . "\n";
         logServerMessage("Released Pokémon with ID: $pokemonId", 'INFO');
         return $result;
+    }
+}
+
+function checkMove($pokemonId, $token)
+{
+    global $conn;
+
+    if (!belongsToUser($pokemonId, $token)) {
+        echo json_encode(array('success' => false, 'message' => 'Pokemon does not belong to user!')) . "\n";
+        return false;
+    } else {
+        $checkQuery = "SELECT ms.MoveId FROM movesets ms JOIN learnset ls ON ms.MoveId = ls.MoveId
+        JOIN pokemon p ON ls.PokedexId = p.PokedexId WHERE ms.PokemonId = ? 
+        AND ls.Way = 'Level' AND p.PokemonId = ? 
+        AND ls.Level <= p.Level;";
+        $checkStmt = mysqli_prepare($conn, $checkQuery);
+        mysqli_stmt_bind_param($checkStmt, 'iii', $pokemonId, $pokemonId, $pokemonId);
+        mysqli_stmt_execute($checkStmt);
+        mysqli_stmt_store_result($checkStmt);
+        $existingMovesCount = mysqli_stmt_num_rows($checkStmt);
+        mysqli_stmt_close($checkStmt);
+
+        if (!$existingMovesCount) {
+            $query = "INSERT INTO movesets (PokemonId, MoveId, PPValue, PP) 
+        SELECT PokemonId, MoveId, PP, PP
+          FROM (
+        SELECT distinct p.PokemonId, l.MoveId, m.PP, l.level FROM `learnset` l JOIN pokemon p ON
+             p.PokedexId=l.PokedexId JOIN moves m ON m.MoveId=l.MoveId where l.Way = 'Level' AND 
+             p.PokemonId = ? and l.Level<=p.Level order by l.Level desc limit 4
+              ) AS last_moves;";
+            $stmt = mysqli_prepare($conn, $query);
+            mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+            $result = mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+
+            echo json_encode(array('success' => true, 'message' => 'Pokemon learned move/s!')) . "\n";
+            logServerMessage("Pokemon learned moves $pokemonId", 'INFO');
+            return $result;
+        }
     }
 }

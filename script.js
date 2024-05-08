@@ -90,6 +90,63 @@ function getStatusColor(status) {
     return statusColorMap[status] || 'transparent';
 }
 
+function createMovesView(pokemon) {
+    var movesContainer = $('<div class="moves-container"></div>');
+
+    for (var i = 0; i < 4; i++) {
+        var moveCard = $('<div class="move-card"></div>');
+        var moveName = $('<div class="move-name"></div>');
+        var moveDescription = $('<div class="move-description"></div>');
+        var moveInfo = $('<div class="move-info"></div>');
+
+        if (pokemon.Moves[i]) {
+            var move = pokemon.Moves[i];
+            moveName.text(move.Name);
+            moveDescription.text(move.Description);
+            var moveEffect = $('<div></div>').text(move.Effect);
+            var movePP = $('<div></div>').text('PP: ' + move.PPValue + "/" + move.PP);
+            var movePower = $('<div></div>').text('Power: ' + (move.Power ? move.Power : '-'));
+            var moveAccuracy = $('<div></div>').text('Accuracy: ' + move.Accuracy);
+            var moveType = $('<div></div>').text(move.TypeName);
+
+            moveType.css({
+                'background-color': '#' + move.TypeColor,
+                'padding': '3px 8px',
+                'border-radius': '3px',
+                'display': 'inline-block'
+            });
+
+            moveInfo.append(moveType, moveEffect, movePP, movePower, moveAccuracy, moveDescription);
+        } else {
+            moveName.text('-');
+        }
+
+        movesContainer.append(moveCard);
+        moveCard.append(moveName);
+        $('body').append(moveInfo);
+        moveInfo.hide();
+
+        (function(moveInfo) {
+            moveName.hover(function () {
+                var offset = $(this).offset();
+                var height = $(this).outerHeight();
+                var width = $(this).outerWidth();
+                var moveInfoHeight = moveInfo.outerHeight();
+                var moveInfoWidth = moveInfo.outerWidth();
+                moveInfo.css({
+                    top: offset.top + height + 10,
+                    left: offset.left - moveInfoWidth / 2 + width / 2
+                });
+                moveInfo.show();
+            }, function () {
+                moveInfo.hide();
+            });
+        })(moveInfo);
+    }
+
+    return movesContainer;
+}
+
 function displayPokemon(data, container) {
     container.empty();
 
@@ -99,6 +156,7 @@ function displayPokemon(data, container) {
         card.append(createHPView(pokemon));
         card.append(createStatsView(pokemon));
         card.append(createExpView(pokemon));
+        card.append(createMovesView(pokemon));
         card.append('<button class="release-btn" data-pokemon-id='+pokemon.PokemonId+'>Release</button>');
         container.append(card);
     });
