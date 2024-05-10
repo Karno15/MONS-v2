@@ -103,6 +103,15 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                     getBoxPokemon();
                 }
             });
+
+            socket.addEventListener('message', function (event) {
+                var message = JSON.parse(event.data);
+                console.log('sdda'+message);
+                if (message.redirect) {
+                    window.location.href = 'logout.php';
+
+                }
+            });
         });
     </script>
 </head>

@@ -156,7 +156,10 @@ function displayPokemon(data, container) {
         card.append(createHPView(pokemon));
         card.append(createStatsView(pokemon));
         card.append(createExpView(pokemon));
+    if (pokemon.Moves)
+    {
         card.append(createMovesView(pokemon));
+    }
         card.append('<button class="release-btn" data-pokemon-id='+pokemon.PokemonId+'>Release</button>');
         container.append(card);
     });

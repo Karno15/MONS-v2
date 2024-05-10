@@ -47,6 +47,11 @@ class MyWebSocketServer implements MessageComponentInterface
                         $pokemonId = $data['pokemonId'];
                         $expgained = $data['exp'];
                         addExp($pokemonId, $expgained, $data['token']);
+
+
+                        if (isset($response['redirect']) && $response['redirect'] === true) {
+                            $from->send(json_encode(['logout' => true]));
+                        }
                     }
                     break;
                 case 'add_mon':
