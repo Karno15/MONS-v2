@@ -149,6 +149,10 @@ function fillMonStats($pokemonId)
 {
     global $conn;
 
+    $HP = getCurrentHP($pokemonId);
+    $oldHP = $HP['HP'];
+    $oldHPLeft = $HP['HPLeft'];
+
     $query = "CALL fillMonStats(?)";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
@@ -169,13 +173,13 @@ function fillMonStats($pokemonId)
     }
 
     $HP = getCurrentHP($pokemonId);
-    $oldHP = $HP['HP'];
-    $oldHPLeft = $HP['HPLeft'];
-    $HPtoSet = $oldHPLeft + ($HP['HP'] - $oldHP);
+    $newHP = $HP['HP'];
+    
+    $newHPLeft = $oldHPLeft + ($newHP - $oldHP);
 
     $query = "UPDATE pokemon SET HPLeft = ? WHERE PokemonId = ?";
     $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'ii', $HPtoSet, $pokemonId);
+    mysqli_stmt_bind_param($stmt, 'ii', $newHPLeft, $pokemonId);
     $success = mysqli_stmt_execute($stmt);
 
     if (!$success) {
@@ -345,7 +349,6 @@ function addExp($pokemonId, $expgained, $token)
 
                 $expdet = getPokemonExpDetails($pokemonId);
             }
-
         } else {
             echo json_encode(array('success' => false, 'message' => $expdet['message'])) . "\n";
         }
@@ -368,8 +371,6 @@ function addMon($pokedexId, $level, $token)
     mysqli_stmt_close($stmt);
 
     $lastInsertId = mysqli_insert_id($conn);
-
-    $currentHP = getCurrentHP($lastInsertId);
 
     checkMove($lastInsertId, $token);
 
@@ -478,4 +479,3 @@ function checkMove($pokemonId, $token)
         }
     }
 }
-
