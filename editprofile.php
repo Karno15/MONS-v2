@@ -36,4 +36,10 @@ if (isset($_POST['signature'])) {
     mysqli_stmt_close($stmt);
 }
 
-header('Location:main.php');
+if (isset($_SERVER['HTTP_REFERER'])) {
+    header('Location: ' . $_SERVER['HTTP_REFERER']);
+    exit;
+} else {
+    header('Location: main.php');
+    exit;
+}

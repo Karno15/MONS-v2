@@ -22,7 +22,6 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 mysqli_stmt_close($stmt);
 
-// Fetch moves for each Pokemon
 foreach ($pokemonData as &$pokemon) {
     $pokemonId = $pokemon['PokemonId'];
     $movesQuery = "CALL showPokemonMoves(?)";
@@ -35,7 +34,6 @@ foreach ($pokemonData as &$pokemon) {
         $movesData[] = $movesRow;
     }
     mysqli_stmt_close($movesStmt);
-    // Append moves data to the respective Pokemon
     $pokemon['Moves'] = $movesData;
 }
 

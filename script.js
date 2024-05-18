@@ -93,7 +93,7 @@ function getStatusColor(status) {
 function createMovesView(pokemon) {
     var movesContainer = $('<div class="moves-container"></div>');
 
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 10; i++) {
         var moveCard = $('<div class="move-card"></div>');
         var moveName = $('<div class="move-name"></div>');
         var moveDescription = $('<div class="move-description"></div>');
@@ -126,7 +126,7 @@ function createMovesView(pokemon) {
         $('body').append(moveInfo);
         moveInfo.hide();
 
-        (function(moveInfo) {
+        (function (moveInfo) {
             moveName.hover(function () {
                 var offset = $(this).offset();
                 var height = $(this).outerHeight();
@@ -156,13 +156,26 @@ function displayPokemon(data, container) {
         card.append(createHPView(pokemon));
         card.append(createStatsView(pokemon));
         card.append(createExpView(pokemon));
-    if (pokemon.Moves)
-    {
-        card.append(createMovesView(pokemon));
-    }
-        card.append('<button class="release-btn" data-pokemon-id='+pokemon.PokemonId+'>Release</button>');
+        if (pokemon.Moves) {
+            card.append(createMovesView(pokemon));
+        }
+        card.append('<button class="release-btn" data-pokemon-id=' + pokemon.PokemonId + '>Release</button>');
         container.append(card);
     });
+}
+
+function addEXP(pokemonId, exp, token, socket) {
+    if (pokemonId && exp) {
+        const data = {
+            type: 'grant_exp',
+            pokemonId: pokemonId,
+            exp: exp,
+            token: token
+        };
+        socket.send(JSON.stringify(data));
+    } else {
+        alert('Please enter Pokemon ID and Exp');
+    }
 }
 
 function updateInfobox() {
@@ -177,3 +190,21 @@ function updateInfobox() {
         }
     })
 }
+
+$(document).ready(function () {
+    var token = getCookie('token');
+
+    $("#editbutton").click(function () {
+        $('#editbox').show();
+    })
+
+    $("#closeedit").click(function () {
+        $('#editbox').hide();
+    })
+
+    $('#fileInput').on('change', function () {
+        var fileName = $(this).val().split('\\').pop();
+        $('#file').text(fileName);
+    })
+
+});

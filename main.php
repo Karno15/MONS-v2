@@ -24,19 +24,6 @@ setcookie("token", $token, time() + (86400 * 30), "/");
         $(document).ready(function() {
             var token = getCookie('token');
 
-            $("#editbutton").click(function() {
-                $('#editbox').show();
-            })
-
-            $("#closeedit").click(function() {
-                $('#editbox').hide();
-            })
-
-            $('#fileInput').on('change', function() {
-                var fileName = $(this).val().split('\\').pop();
-                $('#file').text(fileName);
-            });
-
             getPartyPokemon();
             getBoxPokemon();
 
@@ -50,24 +37,48 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                 console.log('Disconnected from the server');
             });
 
-            $('#addExp').on('click', function() {
-                const pokemonId = $('#addexp-pokemonId').val();
-                const exp = $('#addexp-exp').val();
-                if (pokemonId && exp) {
-                    const data = {
-                        type: 'grant_exp',
-                        pokemonId: pokemonId,
-                        exp: exp,
-                        token: token
-                    };
-                    socket.send(JSON.stringify(data));
+            socket.addEventListener('error', function(event) {
+                console.error('WebSocket error:', event);
+            });
+
+            socket.addEventListener('message', function(event) {
+                var message = JSON.parse(event.data);
+                console.log(message);
+                if (message.levelup === true) {
+                    console.log('Level Up!');
+                    alert('Level up!');
+                    if (message.evolve === true) {
+
+                        if (confirm('Pokemon is evolving! Continue?')) {
+                            const data = {
+                                type: 'evolve_mon',
+                                pokemonId: message.pokemonId,
+                                evoType: 'EXP',
+                                token: token
+                            };
+                            socket.send(JSON.stringify(data));
+                            txt = "Pokemon evolved!";
+                        } else {
+                            txt = "Evolution was cancelled!";
+                        }
+
+                    }
+                    addEXP(message.pokemonId, message.expToAdd, token, socket);
                     setTimeout(function() {
                         getPartyPokemon();
                         getBoxPokemon();
-                    }, 200);
-                } else {
-                    alert('Please enter Pokemon ID and Exp');
+                    }, 10);
                 }
+            });
+
+            $('#addExp').on('click', function() {
+                const pokemonId = $('#addexp-pokemonId').val();
+                var exp = $('#addexp-exp').val();
+                addEXP(pokemonId, exp, token, socket);
+                setTimeout(function() {
+                    getPartyPokemon();
+                    getBoxPokemon();
+                }, 10);
             });
 
             $('#addPokemon').click(function() {
@@ -104,14 +115,6 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                 }
             });
 
-            socket.addEventListener('message', function (event) {
-                var message = JSON.parse(event.data);
-                console.log('sdda'+message);
-                if (message.redirect) {
-                    window.location.href = 'logout.php';
-
-                }
-            });
         });
     </script>
 </head>
