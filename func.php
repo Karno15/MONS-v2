@@ -249,9 +249,43 @@ function canEvolve($pokemonId)
 
     if ($result && mysqli_num_rows($result) > 0) {
         $rows = mysqli_fetch_all($result, MYSQLI_ASSOC);
-        return true;
+        return 1;
     } else {
-        return false;
+        return 0;
+    }
+}
+
+
+function evolvePokemon($pokemonId, $evoType, $token)
+{
+    global $conn;
+
+    if (!belongsToUser($pokemonId, $token)) {
+        $response = array('success' => false, 'message' => 'Pokemon does not belong to user!');
+        return $response;
+    } else {
+        $queryevo = "UPDATE pokemon p JOIN evos e ON p.PokedexId=e.PokedexId
+                 SET p.PokedexId= e.PokedexIdNew WHERE p.PokemonId = ? and e.EvoType= ? ;";
+        $stmtevo = mysqli_prepare($conn, $queryevo);
+        mysqli_stmt_bind_param($stmtevo, 'is', $pokemonId, $evoType);
+        $resultevo = mysqli_stmt_execute($stmtevo);
+        mysqli_stmt_close($stmtevo);
+        if (!$resultevo) {
+            echo json_encode(array('success' => false, 'message' => 'Can\'t evolve'));
+            return array('success' => false);
+        }
+
+        $evoInfo = 'Pokemon(' . $pokemonId . ') evolved!';
+
+        logServerMessage($evoInfo);
+        addMessage($evoInfo);
+
+        fillMonStats($pokemonId);
+
+        $result = array('success' => true, 'message' => $evoInfo);
+
+        echo json_encode($result) . "\n";
+        return $result;
     }
 }
 
@@ -309,6 +343,27 @@ function addExp($pokemonId, $expGained, $token)
                 $result['levelup'] = true;
                 $result['expToAdd'] =  $expGained;
                 $result['evolve'] = canEvolve($pokemonId);
+
+                $newMove = canLearnMove($pokemonId);
+                print_r($newMove);
+                if (!empty($newMove['moves'])) {
+                    if ($newMove['moveCount'] >= 4) {
+                        $result['moveSwap'] = [];
+                        foreach ($newMove['moves'] as $moveId) {
+                            array_push($result['moveSwap'], $moveId);
+                        }
+                    } else {
+                        $orderNumber = $newMove['moveCount'] + 1;
+                        foreach ($newMove['moves'] as $moveId) {
+                            if ($orderNumber <= 4) {
+                                learnMove($pokemonId, $moveId, $orderNumber, $token);
+                                $orderNumber++;
+                            } else {
+                                array_push($result['moveSwap'], $moveId);
+                            }
+                        }
+                    }
+                }
             } else {
                 $expToAdd = $expGained;
                 $expGained = 0;
@@ -415,14 +470,28 @@ function learnMove($pokemonId, $moveId, $orderNumber, $token)
         $existingMoveOrders = array_column($existingMoves, 'MoveOrder');
 
         if (in_array($moveId, $existingMoveIds)) {
-            $response = array('success' => 0, 'message' => 'Move already exists in the moveset!');
-            print_r($response);
+            $updateQuery = "
+            UPDATE movesets
+            SET MoveOrder = 
+                CASE 
+                    WHEN MoveId = ?  THEN ?
+                    WHEN MoveOrder = ? THEN 0
+                END
+            WHERE PokemonId = ? AND (MoveId = ? OR MoveOrder = ?);
+            ";
+            $updateStmt = mysqli_prepare($conn, $updateQuery);
+            mysqli_stmt_bind_param($updateStmt, 'iiiiii', $moveId, $orderNumber, $orderNumber, $pokemonId, $moveId, $orderNumber);
+            mysqli_stmt_execute($updateStmt);
+            mysqli_stmt_close($updateStmt);
+
+            $response = array('success' => true, 'message' => 'Move added in the moveset!');
+            logServerMessage("Move updated in the moveset: $pokemonId", 'INFO');
             return $response;
         } else {
             if (in_array($orderNumber, $existingMoveOrders)) {
                 $updateQuery = "UPDATE movesets ms
-                INNER JOIN moves m ON movesets.MoveId = moves.MoveId
-                SET ms.MoveId = ?, ms.PPValue = m.PP, movesets.PP = m.PP
+                INNER JOIN moves m ON ms.MoveId = ms.MoveId
+                SET ms.MoveId = ?, ms.PPValue = m.PP, ms.PP = m.PP
                 WHERE ms.PokemonId = ? AND ms.MoveOrder = ?";
                 $updateStmt = mysqli_prepare($conn, $updateQuery);
                 mysqli_stmt_bind_param($updateStmt, 'iii', $moveId, $pokemonId, $orderNumber);
@@ -448,35 +517,42 @@ function learnMove($pokemonId, $moveId, $orderNumber, $token)
     }
 }
 
-function evolvePokemon($pokemonId, $evoType, $token)
+function canLearnMove($pokemonId)
 {
     global $conn;
 
-    if (!belongsToUser($pokemonId, $token)) {
-        $response = array('success' => false, 'message' => 'Pokemon does not belong to user!');
-        return $response;
-    } else {
-        $queryevo = "UPDATE pokemon p JOIN evos e ON p.PokedexId=e.PokedexId
-                 SET p.PokedexId= e.PokedexIdNew WHERE p.PokemonId = ? and e.EvoType= ? ;";
-        $stmtevo = mysqli_prepare($conn, $queryevo);
-        mysqli_stmt_bind_param($stmtevo, 'is', $pokemonId, $evoType);
-        $resultevo = mysqli_stmt_execute($stmtevo);
-        mysqli_stmt_close($stmtevo);
-        if (!$resultevo) {
-            echo json_encode(array('success' => false, 'message' => 'Can\'t evolve'));
-            return array('success' => false);
-        }
+    $query = "
+        SELECT ls.MoveId 
+        FROM pokemon p
+        JOIN learnset ls ON p.PokedexId = ls.PokedexId
+        WHERE p.PokemonId = ? AND ls.Level = p.Level";
 
-        $evoInfo = 'Pokemon(' . $pokemonId . ') evolved!';
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
 
-        logServerMessage($evoInfo);
-        addMessage($evoInfo);
-
-        fillMonStats($pokemonId);
-
-        $result = array('success' => true, 'message' => $evoInfo);
-
-        echo json_encode($result);
-        return $result;
+    $moves = [];
+    while ($moveData = mysqli_fetch_assoc($result)) {
+        $moves[] = $moveData['MoveId'];
     }
+
+    mysqli_stmt_close($stmt);
+
+    $queryms = "
+        SELECT COUNT(*) as moveCount 
+        FROM movesets 
+        WHERE PokemonId = ? AND MoveOrder != 0";
+
+    $stmtms = mysqli_prepare($conn, $queryms);
+    mysqli_stmt_bind_param($stmtms, 'i', $pokemonId);
+    mysqli_stmt_execute($stmtms);
+    $resultms = mysqli_stmt_get_result($stmtms);
+
+    $movesetData = mysqli_fetch_assoc($resultms);
+    mysqli_stmt_close($stmtms);
+
+    $movesetCount = intval($movesetData['moveCount']);
+
+    return !empty($moves) ? ['moves' => $moves, 'moveCount' => $movesetCount] : false;
 }

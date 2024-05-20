@@ -56,7 +56,8 @@ class MyWebSocketServer implements MessageComponentInterface
                                 'levelup' => true,
                                 'pokemonId' => $addexp['pokemonId'],
                                 'expToAdd' => $addexp['expToAdd'],
-                                'evolve' => $addexp['evolve']
+                                'evolve' => $addexp['evolve'],
+                                'moveSwap' => $addexp['moveSwap'] ?? 0
                             ]));
                         }
                     }
@@ -79,6 +80,14 @@ class MyWebSocketServer implements MessageComponentInterface
                     if (isset($data['pokemonId'])) {
                         $pokemonId = $data['pokemonId'];
                         releasePokemon($pokemonId, $data['token']);
+                    }
+                    break;
+                case 'learn_move':
+                    if (isset($data['pokemonId']) && isset($data['moveId']) && isset($data['moveOrder'])) {
+                        $pokemonId = $data['pokemonId'];
+                        $moveId = $data['moveId'];
+                        $moveOrder = $data['moveOrder'];
+                        learnMove($pokemonId, $moveId, $moveOrder, $data['token']);
                     }
                     break;
                 default:

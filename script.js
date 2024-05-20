@@ -39,6 +39,7 @@ function createViewSpriteLevel(pokemon) {
 
     return $('<div></div>')
         .append(`<div class="pokemon-name" class="pokemon-view">${pokemon.Name}</div>`)
+        .append(`<div class="pokemon-stat"> ${pokemon.PokemonId}</b></div>`)
         .append(`<div class="pokemon-sprite"><img src="image.php?path=${spritesPath}${pokemon.PokedexId}.png" alt="sprite" /></div>`)
         .append(`<div class="pokemon-stat"><b>Level: ${pokemon.Level}</b></div>`);
 }
@@ -93,7 +94,7 @@ function getStatusColor(status) {
 function createMovesView(pokemon) {
     var movesContainer = $('<div class="moves-container"></div>');
 
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 6; i++) {
         var moveCard = $('<div class="move-card"></div>');
         var moveName = $('<div class="move-name"></div>');
         var moveDescription = $('<div class="move-description"></div>');
