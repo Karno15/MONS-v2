@@ -23,6 +23,7 @@ setcookie("token", $token, time() + (86400 * 30), "/");
     <script>
         $(document).ready(function() {
             var token = getCookie('token');
+            var evolution = 0;
 
             getPartyPokemon();
             getBoxPokemon();
@@ -44,52 +45,63 @@ setcookie("token", $token, time() + (86400 * 30), "/");
             socket.addEventListener('message', function(event) {
                 var message = JSON.parse(event.data);
                 console.log(message);
-                if (message.levelup === true) {
+
+                if (message.levelup == true) {
                     console.log('Level Up!');
-                    setTimeout(function() {
-                        alert(message.pokemonId + ' grew to level [Y]!');
-                        if (message.moveSwap != 0) {
-                            for (var moveId of message.moveSwap) {
-                                if (confirm(message.pokemonId + "is trying to learn " + moveId + "." +
-                                        "But, " + message.pokemonId + " can't learn more than four moves!" +
-                                        "Delete an older move to make room for " + moveId + "?"
-                                    )) {
-                                    moveOrder = prompt('which order?');
-                                    const data = {
-                                        type: 'learn_move',
-                                        pokemonId: message.pokemonId,
-                                        moveId: moveId,
-                                        moveOrder: moveOrder,
-                                        token: token
-                                    };
-                                    socket.send(JSON.stringify(data));
-                                    txt = "move learned!";
-                                } else {
-                                    txt = "move cancelled";
-                                }
-                            }
-                        }
-                        if (message.evolve == true) {
-                            if (confirm('Pokemon is evolving! Continue?')) {
-                                const data = {
-                                    type: 'evolve_mon',
-                                    pokemonId: message.pokemonId,
-                                    evoType: 'EXP',
-                                    token: token
-                                };
-                                socket.send(JSON.stringify(data));
-                                txt = "Pokemon evolved!";
-                            } else {
-                                txt = "Evolution was cancelled!";
-                            }
-                        }
-                        addEXP(message.pokemonId, message.expToAdd, token, socket);
-                        setTimeout(function() {
-                            getPartyPokemon();
-                            getBoxPokemon();
-                        }, 10);
-                    }, 150)
+                    alert(message.pokemonId + ' grew to level [Y]!');
                 }
+
+                if (message.moveSwap != 0) {
+
+                    for (var moveId of message.moveSwap) {
+                        if (confirm(message.pokemonId + "is trying to learn " + moveId + "." +
+                                "But, " + message.pokemonId + " can't learn more than four moves!" +
+                                "Delete an older move to make room for " + moveId + "?"
+                            )) {
+                            moveOrder = prompt('which order?');
+                            const data = {
+                                type: 'learn_move',
+                                pokemonId: message.pokemonId,
+                                moveId: moveId,
+                                moveOrder: moveOrder,
+                                token: token
+                            };
+                            socket.send(JSON.stringify(data));
+                            txt = "move learned!";
+                        } else {
+                            txt = "move cancelled";
+                        }
+                    }
+                }
+                if (message.evolve) {
+                    evolution = 1;
+                }
+
+                if (message.expToAdd > 0) {
+                    addEXP(message.pokemonId, message.expToAdd, token, socket);
+                }
+
+                if(message.levelup == 0 && evolution){
+                    if (confirm('Pokemon is evolving! Continue?')) {
+                    const data = {
+                        type: 'evolve_mon',
+                        pokemonId: message.pokemonId,
+                        evoType: 'EXP',
+                        token: token
+                    };
+                    socket.send(JSON.stringify(data));
+                    txt = "Pokemon evolved!";
+                } else {
+                    txt = "Evolution was cancelled!";
+                }
+                }
+
+
+                setTimeout(function() {
+                    getPartyPokemon();
+                    getBoxPokemon();
+                }, 150);
+
             });
 
             $('#addExp').on('click', function() {
@@ -99,7 +111,7 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                 setTimeout(function() {
                     getPartyPokemon();
                     getBoxPokemon();
-                }, 10);
+                }, 150);
             });
 
             $('#addPokemon').click(function() {
@@ -114,8 +126,10 @@ setcookie("token", $token, time() + (86400 * 30), "/");
                         token: token
                     };
                     socket.send(JSON.stringify(data));
-                    getPartyPokemon();
-                    getBoxPokemon();
+                    setTimeout(function() {
+                        getPartyPokemon();
+                        getBoxPokemon();
+                    }, 10);
                 } else {
                     alert('Please enter pokedex ID and level');
                 }
