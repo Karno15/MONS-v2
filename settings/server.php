@@ -54,9 +54,11 @@ class MyWebSocketServer implements MessageComponentInterface
                         $from->send(json_encode([
                             'levelup' => $addexp['levelup'],
                             'pokemonId' => $addexp['pokemonId'],
-                            'expToAdd' => $addexp['expToAdd'],
+                            'expToAdd' => $addexp['expToAdd'] ?? 0,
+                            'learned' => $addexp['learned'] ?? 0,
                             'evolve' => $addexp['evolve'] ?? 0,
-                            'moveSwap' => $addexp['moveSwap'] ?? 0
+                            'moveSwap' => $addexp['moveSwap'] ?? 0,
+                            'responseFrom' => 'grant_exp'
                         ]));
                     }
                     break;
@@ -71,14 +73,16 @@ class MyWebSocketServer implements MessageComponentInterface
                     if (isset($data['pokemonId'])) {
                         $pokemonId = $data['pokemonId'];
                         $evoType = $data['evoType'] ?? 'EXP';
+                        $expToAdd = $data['expToAdd'] ?? 0;
                         $evoMon = evolvePokemon($pokemonId, $evoType, $data['token']);
 
-                        if ($evoMon['moveSwap'] ?? false) {
-                            $from->send(json_encode([
-                                'pokemonId' => $evoMon['pokemonId'],
-                                'moveSwap' => $evoMon['moveSwap'] ?? 0
-                            ]));
-                        }
+                        $from->send(json_encode([
+                            'pokemonId' => $evoMon['pokemonId'],
+                            'expToAdd' => $expToAdd,
+                            'learned' => $evoMon['learned'] ?? 0,
+                            'moveSwap' => $evoMon['moveSwap'] ?? 0,
+                            'responseFrom' => 'evolve_mon'
+                        ]));
                     }
                     break;
                 case 'release_pokemon':

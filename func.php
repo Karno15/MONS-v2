@@ -238,7 +238,7 @@ function canEvolve($pokemonId)
 {
     global $conn;
 
-    $query = 'SELECT e.PokedexId,e.Name, e.LevelReq,e.NameNew,e.PokedexIdNew 
+    $query = 'SELECT e.PokedexIdNew 
     FROM `evos` e JOIN pokemon p ON p.PokedexId=e.PokedexId
     WHERE EvoType="EXP" AND p.Level>=e.LevelReq AND p.PokemonId= ? ';
 
@@ -249,7 +249,7 @@ function canEvolve($pokemonId)
 
     if ($result && mysqli_num_rows($result) > 0) {
         $rows = mysqli_fetch_all($result, MYSQLI_ASSOC);
-        return 1;
+        return $rows[0]['PokedexIdNew'];
     } else {
         return 0;
     }
@@ -282,10 +282,11 @@ function evolvePokemon($pokemonId, $evoType, $token)
 
         fillMonStats($pokemonId);
 
-        $result = array('success' => true, 'message' => $evoInfo);
+        $result = array('success' => true, 'message' => $evoInfo, 'pokemonId' => $pokemonId);
 
         $newMove = canLearnMove($pokemonId);
         $result['moveSwap'] = [];
+        $result['learned'] = [];
         if (!empty($newMove['moves'])) {
             $result['pokemonId'] = $pokemonId;
             if ($newMove['moveCount'] >= 4) {
@@ -297,6 +298,7 @@ function evolvePokemon($pokemonId, $evoType, $token)
                 foreach ($newMove['moves'] as $moveId) {
                     if ($orderNumber <= 4) {
                         learnMove($pokemonId, $moveId, $orderNumber, $token);
+                        array_push($result['learned'], $moveId);
                         $orderNumber++;
                     } else {
                         array_push($result['moveSwap'], $moveId);
@@ -360,12 +362,13 @@ function addExp($pokemonId, $expGained, $token)
 
                 fillMonStats($pokemonId);
 
-                $result['levelup'] = true;
+                $result['levelup'] = $level;
                 $result['expToAdd'] =  $expGained;
                 $evolution = canEvolve($pokemonId);
 
                 $newMove = canLearnMove($pokemonId);
                 $result['moveSwap'] = [];
+                $result['learned'] = [];
                 print_r($newMove);
                 if (!empty($newMove['moves'])) {
                     if ($newMove['moveCount'] >= 4) {
@@ -377,6 +380,7 @@ function addExp($pokemonId, $expGained, $token)
                         foreach ($newMove['moves'] as $moveId) {
                             if ($orderNumber <= 4) {
                                 learnMove($pokemonId, $moveId, $orderNumber, $token);
+                                array_push($result['learned'], $moveId);
                                 $orderNumber++;
                             } else {
                                 array_push($result['moveSwap'], $moveId);

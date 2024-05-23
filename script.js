@@ -94,7 +94,7 @@ function getStatusColor(status) {
 function createMovesView(pokemon) {
     var movesContainer = $('<div class="moves-container"></div>');
 
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 4; i++) {
         var moveCard = $('<div class="move-card"></div>');
         var moveName = $('<div class="move-name"></div>');
         var moveDescription = $('<div class="move-description"></div>');
@@ -151,6 +151,10 @@ function createMovesView(pokemon) {
 function displayPokemon(data, container) {
     container.empty();
 
+    if (!Array.isArray(data)) {
+        return;
+    }
+
     data.forEach(function (pokemon) {
         var card = $('<div class="pokemon-card"></div>');
         card.append(createViewSpriteLevel(pokemon));
@@ -192,8 +196,28 @@ function updateInfobox() {
     })
 }
 
-$(document).ready(function () {
-    var token = getCookie('token');
+function getData(key, value) {
+    return $.ajax({
+        url: 'getData.php',
+        method: 'POST',
+        data: {
+            key: key,
+            value: value
+        },
+        dataType: 'json'
+    }).then(
+        function (response) {
+            return response;
+        },
+        function (xhr, status, error) {
+            console.error('Error fetching data:', error);
+            throw error;
+        }
+    );
+}
+
+$(document).ready(async function () {
+    var token = await getCookie('token');
 
     $("#editbutton").click(function () {
         $('#editbox').show();
@@ -207,5 +231,152 @@ $(document).ready(function () {
         var fileName = $(this).val().split('\\').pop();
         $('#file').text(fileName);
     })
+
+    var evolution = 0;
+    let lastExpToAdd = 0;
+
+    const socket = new WebSocket('ws://localhost:8080');
+
+    socket.addEventListener('open', function (event) {
+        console.log('Connected to the server');
+    });
+
+    socket.addEventListener('close', function (event) {
+        console.log('Disconnected from the server');
+    });
+
+    socket.addEventListener('error', function (event) {
+        console.error('WebSocket error:', event);
+    });
+
+    await socket.addEventListener('message', async function (event) {
+        await getPartyPokemon();
+        await getBoxPokemon();
+
+        var message = JSON.parse(event.data);
+        console.log(message);
+
+        if (message.pokemonId) {
+            dataMon = await getData('pokemonId', message.pokemonId);
+            pokemonName = dataMon[0].Name;
+        }
+
+        if (message.levelup) {
+            console.log('Level Up!');
+            alert(pokemonName + ' grew to level ' + message.levelup + '!');
+        }
+
+        if (message.learned.length > 0) {
+            for (var moveId of message.learned) {
+                dataMove = await getData('moveId', moveId);
+                moveName = dataMove[0].Name;
+                alert(pokemonName + ' learned ' + moveName + "!");
+            }
+        }
+
+        if (message.moveSwap != 0) {
+            for (var moveId of message.moveSwap) {
+                dataMove = await getData('moveId', moveId);
+                moveName = dataMove[0].Name;
+                if (confirm(pokemonName + " is trying to learn " + moveName + ". " +
+                    "But, " + pokemonName + " can't learn more than four moves! " +
+                    "Delete an older move to make room for " + moveName + "?"
+                )) {
+                    let moveOrder = prompt('Which order?');
+                    if (moveOrder !== null) {
+                        const data = {
+                            type: 'learn_move',
+                            pokemonId: message.pokemonId,
+                            moveId: moveId,
+                            moveOrder: moveOrder,
+                            token: token
+                        };
+                        socket.send(JSON.stringify(data));
+                        console.log("Move learned!");
+                    } else {
+                        console.log("Move learning was cancelled in the prompt.");
+                    }
+                } else {
+                    console.log("Cancelled!");
+                }
+            }
+        }
+
+        if (message.evolve) {
+            evolution = 1;
+            dataDex = await getData('pokedexId', message.evolve);
+            pokemonNewName = dataDex[0].Name;
+        }
+
+        if (message.expToAdd > 0) {
+            lastExpToAdd = message.expToAdd;
+            addEXP(message.pokemonId, message.expToAdd, token, socket);
+        }
+
+        if ((message.levelup == 0 || message.expToAdd == 0) && evolution) {
+            if (confirm(pokemonName + ' is evolving! Continue?')) {
+                const data = {
+                    type: 'evolve_mon',
+                    pokemonId: message.pokemonId,
+                    evoType: 'EXP',
+                    expToAdd: lastExpToAdd ?? 0,
+                    token: token
+                };
+                socket.send(JSON.stringify(data));
+                lastExpToAdd = 0;
+                alert(pokemonName + " evolved into " + pokemonNewName  + "!");
+            } else {
+                alert("Huh? " + pokemonName + " stopped evolving!");
+            }
+            evolution = 0;
+            pokemonNewName = 0;
+        }
+
+        getPartyPokemon();
+        getBoxPokemon();
+    });
+
+    $('#addExp').on('click', async function () {
+        const pokemonId = $('#addexp-pokemonId').val();
+        var exp = $('#addexp-exp').val();
+        await addEXP(pokemonId, exp, token, socket);
+        getPartyPokemon();
+        getBoxPokemon();
+    });
+
+    $('#addPokemon').click(async function () {
+        const pokedexId = $('#addPokemon-PokedexId').val();
+        const level = $('#addPokemon-level').val();
+
+        if (pokedexId && level) {
+            const data = {
+                type: 'add_mon',
+                pokedexId: pokedexId,
+                level: level,
+                token: token
+            };
+            await socket.send(JSON.stringify(data));
+            getPartyPokemon();
+            getBoxPokemon();
+        } else {
+            alert('Please enter pokedex ID and level');
+        }
+    });
+
+    $(document).on('click', '.release-btn', async function () {
+        var pokemonId = $(this).data('pokemon-id');
+        var confirmRelease = confirm("Are you sure you want to release this Pokémon?");
+        if (confirmRelease) {
+            var data = {
+                type: 'release_pokemon',
+                pokemonId: pokemonId,
+                token: token
+            };
+            await socket.send(JSON.stringify(data));
+            getPartyPokemon();
+            getBoxPokemon();
+        }
+    });
+
 
 });
