@@ -22,6 +22,7 @@ setcookie("token", $token, time() + (86400 * 30), "/");
     <script src="script.js"></script>
     <script>
         $(document).ready(async function() {
+
             await getPartyPokemon();
             await getBoxPokemon();
         });
@@ -29,8 +30,32 @@ setcookie("token", $token, time() + (86400 * 30), "/");
 </head>
 
 <body>
-    <div class="infobox">
+<div id="customModal" class="modal">
+    <div class="modal-content">
+        <p id="modalMessage"></p>
+        <div class="modal-buttons">
+            <button id="confirmButton">Confirm</button>
+        </div>
     </div>
+</div>
+
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <p id="confirmMessage"></p>
+        <div class="modal-buttons">
+            <button id="yesButton">Yes</button>
+            <button id="noButton">No</button>
+        </div>
+    </div>
+</div>
+
+<div id="promptModal" class="modal">
+    <div class="modal-content">
+        <p id="promptMessage"></p>
+        <div class="infobox">
+        </div>
+    </div>
+</div>
     <div id="container">
         <button id="editbutton">EDIT PROFILE</button><a href="logout.php">LOGOUT</a>
         <div id="editbox">
@@ -72,5 +97,8 @@ setcookie("token", $token, time() + (86400 * 30), "/");
         <div id="test"></div>
     </div>
 </body>
+
+
+
 
 </html>

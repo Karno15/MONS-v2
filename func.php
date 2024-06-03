@@ -61,6 +61,46 @@ function logServerMessage($message, $label = 'INFO')
     //file_put_contents('../logs/logs.log', $logEntry, FILE_APPEND);
 }
 
+function saveUserAction($payload, $token)
+{
+    global $conn;
+
+    $data = json_decode($payload, true);
+
+    if (isset($data['evolve'], $data['expToAdd'], $data['levelup']) &&
+        $data['evolve'] == 0 && $data['expToAdd'] == 0 && $data['levelup'] == 0) {
+        return 0;
+    }
+
+    $tokenData = getTokenData($token);
+    $userId = $tokenData['userid'];
+
+    $query = "INSERT INTO useractions (`UserId`, `Payload`) VALUES (?, ?)";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'is', $userId, $payload);
+    $result = mysqli_stmt_execute($stmt);
+    $insertId = mysqli_insert_id($conn);
+    mysqli_stmt_close($stmt);
+
+    return $result ? $insertId : 0;
+}
+
+
+function confirmAction($actionId, $token)
+{
+    global $conn;
+
+    $tokenData = getTokenData($token);
+    $userId = $tokenData['userid'];
+
+    $query = "UPDATE useractions SET Done = 1 where UserId = ? AND UserActionId = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'ii', $userId, $actionId);
+    $result = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    return $result ? true : false;
+}
 
 function addMessage($message)
 {
@@ -307,7 +347,8 @@ function evolvePokemon($pokemonId, $evoType, $token)
             }
         }
 
-        echo json_encode($result) . "\n";
+        $result['actionId'] = saveUserAction(json_encode($result), $token);
+        echo json_encode($result) . "\n";        
         return $result;
     }
 }
@@ -400,12 +441,14 @@ function addExp($pokemonId, $expGained, $token)
         } else {
             $result['message'] = 'level capped';
         }
-        
+
         $result['pokemonId'] = $pokemonId;
         $result['evolve'] = $evolution ?? 0;
         $result['expToAdd'] = $result['expToAdd'] ?? 0;
         $result['levelup'] = $result['levelup'] ?? 0;
         $result['success'] = true;
+        
+        $result['actionId'] = saveUserAction(json_encode($result), $token);
         return $result;
     }
 }
@@ -597,5 +640,6 @@ function canLearnMove($pokemonId)
 
     $movesetCount = intval($movesetData['moveCount']);
 
-    return !empty($moves) ? ['moves' => $moves, 'moveCount' => $movesetCount] : false;
+    $result = !empty($moves) ? ['moves' => $moves, 'moveCount' => $movesetCount] : false;
+    return $result;
 }

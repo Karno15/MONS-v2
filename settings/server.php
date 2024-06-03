@@ -42,6 +42,13 @@ class MyWebSocketServer implements MessageComponentInterface
 
         if ($data && isset($data['type'])) {
             switch ($data['type']) {
+                case 'confirm_action':
+                    if (isset($data['token']) && isset($data['actionId'])) {
+                        $token = $data['token'];
+                        $actionId = $data['actionId'];
+                        confirmAction($actionId, $token);
+                    }
+                    break;
                 case 'grant_exp':
                     if (isset($data['pokemonId']) && isset($data['exp'])) {
                         $pokemonId = $data['pokemonId'];
@@ -52,6 +59,7 @@ class MyWebSocketServer implements MessageComponentInterface
                         print_r($addexp);
 
                         $from->send(json_encode([
+                            'actionId' => $addexp['actionId'] ?? 0,
                             'levelup' => $addexp['levelup'],
                             'pokemonId' => $addexp['pokemonId'],
                             'expToAdd' => $addexp['expToAdd'] ?? 0,
@@ -77,6 +85,7 @@ class MyWebSocketServer implements MessageComponentInterface
                         $evoMon = evolvePokemon($pokemonId, $evoType, $data['token']);
 
                         $from->send(json_encode([
+                            'actionId' => $evoMon['actionId'] ?? 0,
                             'pokemonId' => $evoMon['pokemonId'],
                             'expToAdd' => $expToAdd,
                             'learned' => $evoMon['learned'] ?? 0,
