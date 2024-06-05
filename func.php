@@ -66,9 +66,51 @@ function saveUserAction($payload, $token)
     global $conn;
 
     $data = json_decode($payload, true);
+    $actions = [];
+    $insertIds = [];
 
-    if (isset($data['evolve'], $data['expToAdd'], $data['levelup']) &&
-        $data['evolve'] == 0 && $data['expToAdd'] == 0 && $data['levelup'] == 0) {
+    if ($data['levelup'] > 0 || $data['expToAdd'] > 0) {
+        $combinedPayload = [
+            'pokemonId' => $data['pokemonId']
+        ];
+
+        if ($data['levelup'] > 0) {
+            $combinedPayload['levelup'] = $data['levelup'];
+        }
+
+        if ($data['expToAdd'] > 0) {
+            $combinedPayload['expToAdd'] = $data['expToAdd'];
+        }
+
+        $actions['levelup'] = json_encode($combinedPayload);
+    }
+
+    if (!empty($data['learned'])) {
+        foreach ($data['learned'] as $moveId) {
+            $actions['learned_' . $moveId] = json_encode([
+                'learned' => $moveId,
+                'pokemonId' => $data['pokemonId']
+            ]);
+        }
+    }
+
+    if (!empty($data['moveSwap'])) {
+        foreach ($data['moveSwap'] as $moveId) {
+            $actions['moveSwap_' . $moveId] = json_encode([
+                'moveSwap' => $moveId,
+                'pokemonId' => $data['pokemonId']
+            ]);
+        }
+    }
+
+    if ($data['evolve'] > 0) {
+        $actions['evolve'] = json_encode([
+            'evolve' => $data['evolve'],
+            'pokemonId' => $data['pokemonId']
+        ]);
+    }
+
+    if (empty($actions)) {
         return 0;
     }
 
@@ -77,12 +119,18 @@ function saveUserAction($payload, $token)
 
     $query = "INSERT INTO useractions (`UserId`, `Payload`) VALUES (?, ?)";
     $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'is', $userId, $payload);
-    $result = mysqli_stmt_execute($stmt);
-    $insertId = mysqli_insert_id($conn);
+
+    foreach ($actions as $key => $action) {
+        mysqli_stmt_bind_param($stmt, 'is', $userId, $action);
+        $result = mysqli_stmt_execute($stmt);
+        if ($result) {
+            $insertIds[$key] = mysqli_insert_id($conn);
+        }
+    }
+
     mysqli_stmt_close($stmt);
 
-    return $result ? $insertId : 0;
+    return !empty($insertIds) ? $insertIds : 0;
 }
 
 
@@ -347,8 +395,7 @@ function evolvePokemon($pokemonId, $evoType, $token)
             }
         }
 
-        $result['actionId'] = saveUserAction(json_encode($result), $token);
-        echo json_encode($result) . "\n";        
+        echo json_encode($result) . "\n";
         return $result;
     }
 }
@@ -447,7 +494,7 @@ function addExp($pokemonId, $expGained, $token)
         $result['expToAdd'] = $result['expToAdd'] ?? 0;
         $result['levelup'] = $result['levelup'] ?? 0;
         $result['success'] = true;
-        
+
         $result['actionId'] = saveUserAction(json_encode($result), $token);
         return $result;
     }
