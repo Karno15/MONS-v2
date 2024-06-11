@@ -208,16 +208,26 @@ $(document).ready(async function () {
     var token = await getCookie('token');
 
     function confirmAction(actionId, token, socket) {
-        if (actionId) {
+        return new Promise((resolve, reject) => {
+            pendingTasks.push(actionId);
             const data = {
                 type: 'confirm_action',
                 actionId: actionId,
                 token: token
             };
-            console.log(data);
             socket.send(JSON.stringify(data));
-            console.log('action ' + actionId + ' ok');
-        }
+            socket.addEventListener('message', function onConfirm(event) {
+                const message = JSON.parse(event.data);
+                if (message.responseFrom === 'confirm_action' && message.actionId === actionId) {
+                    socket.removeEventListener('message', onConfirm);
+                    const index = pendingTasks.indexOf(actionId);
+                    if (index > -1) {
+                        pendingTasks.splice(index, 1);
+                    }
+                    resolve(true);
+                }
+            });
+        });
     }
 
     function getUnfinishedAction() {
@@ -226,7 +236,9 @@ $(document).ready(async function () {
                 url: 'getUnfinishedAction.php',
                 type: 'GET',
                 success: function (response) {
-                    console.log(response);
+                    message = JSON.parse(response);
+                    console.log('Unfinished actions from ajax:')
+                    console.log(message);
                     resolve(response);
                 },
                 error: function (xhr, status, error) {
@@ -237,166 +249,198 @@ $(document).ready(async function () {
         });
     }
 
+    let unfinishedTasks = [];
+    let pendingTasks = [];
+    let modalQueue = [];
+    let isModalShowing = false;
+    let isHandlingMessage = false;
+
     async function processNextTask(socket) {
-        if (unfinishedTasks.length > 0) {
+        if (!isHandlingMessage && unfinishedTasks.length > 0) {
+            isHandlingMessage = true;
+            console.log(unfinishedTasks);
             const task = unfinishedTasks.shift();
+            console.log(unfinishedTasks);
             try {
                 await handleMessage(task, token, socket);
             } catch (error) {
                 console.error('Error processing task:', error);
+            } finally {
+                isHandlingMessage = false;
+                processNextTask(socket);
             }
-            processNextTask(socket);
         }
     }
-
-    let modalQueue = []; // Queue to store messages
 
     function showModal(message, callback) {
         const modal = document.getElementById('modal');
         const modalMessage = document.getElementById('modal-message');
         const confirmButton = document.getElementById('modal-confirm-button');
 
-        const modalData = { message, callback }; // Create modal data object
-        modalQueue.push(modalData); // Add modal data to the queue
+        const modalData = { message, callback };
 
-        if (modalQueue.length === 1) { // If this is the only message in the queue, show it
+        if (!isMessageInQueue(modalData)) {
+            modalQueue.push(modalData);
+        }
+
+        if (!isModalShowing) {
             displayNextModal();
         }
 
+        function isMessageInQueue(newMessage) {
+            const found = modalQueue.some(item => item.message === newMessage.message);
+            return found;
+        }
+
         function displayNextModal() {
-            const nextModalData = modalQueue[0]; // Get the next modal data from the queue
+            if (modalQueue.length === 0) {
+                isModalShowing = false;
+                return;
+            }
+
+            isModalShowing = true;
+            const nextModalData = modalQueue.shift();
             modalMessage.textContent = nextModalData.message;
             modal.style.display = 'block';
 
             confirmButton.onclick = function () {
                 modal.style.display = 'none';
-                modalQueue.shift(); // Remove the current message from the queue
-
                 if (typeof nextModalData.callback === 'function') {
                     nextModalData.callback();
                 }
 
-                if (modalQueue.length > 0) { // If there are more messages in the queue, display the next one
-                    displayNextModal();
-                }
+                isModalShowing = false;
+                displayNextModal();
             };
         }
     }
 
 
     async function handleMessage(message, token, socket) {
-        console.log('begin handling:' + message);
-        getPartyPokemon();
-        getBoxPokemon();
-
-        console.log(message);
-
-        var actionId = message.actionId ?? 0;
-
-        if (message.pokemonId) {
-            dataMon = await getData('pokemonId', message.pokemonId);
-            pokemonName = dataMon[0].Name;
-        }
-
-        if (message.levelup) {
-            console.log('Level Up!');
-            showModal(pokemonName + ' grew to level ' + message.levelup + '!', function () {
-                confirmAction(actionId, token, socket);
-
-                if (message.expToAdd > 0) {
-                    lastExpToAdd = message.expToAdd;
-                    addEXP(message.pokemonId, message.expToAdd, token, socket);
+        return new Promise(async (resolve, reject) => {
+            try {
+                console.log('begin handling');
+                console.log(message);
+    
+                const actionId = message.actionId ?? 0;
+                let pokemonName = '';
+                let lastExpToAdd = 0;
+                let evolution = 0;
+                let pokemonNewName = '';
+    
+                if (message.pokemonId) {
+                    const dataMon = await getData('pokemonId', message.pokemonId);
+                    pokemonName = dataMon[0].Name;
                 }
-            });
-        }
-
-        if (message.learned && (Array.isArray(message.learned) ? message.learned.length > 0 : message.learned !== 0)) {
-            let moveId;
-            if (Array.isArray(message.learned)) {
-                moveId = message.learned[0];
-            } else {
-                moveId = message.learned;
-            }
-
-            const dataMove = await getData('moveId', moveId);
-            const moveName = dataMove[0].Name;
-
-            showModal(pokemonName + ' learned ' + moveName + "!", function () {
-                confirmAction(actionId, token, socket);
-
-                if (message.expToAdd > 0) {
-                    lastExpToAdd = message.expToAdd;
-                    addEXP(message.pokemonId, message.expToAdd, token, socket);
+    
+                if (message.levelup) {
+                    console.log('Level Up!');
+                    await showModalPromise(`${pokemonName} grew to level ${message.levelup}!`);
+                    await confirmAction(actionId, token, socket);
+    
+                    if (message.expToAdd > 0) {
+                        lastExpToAdd = message.expToAdd;
+                        await addEXP(message.pokemonId, message.expToAdd, token, socket);
+                    }
                 }
-            });
-        }
-
-
-        if (message.moveSwap && (Array.isArray(message.moveSwap) ? message.moveSwap.length > 0 : message.moveSwap !== 0)) {
-            moveId = message.moveSwap;
-            let dataMove = await getData('moveId', moveId);
-            let moveName = await dataMove[0].Name;
-            console.log('new move');
-            confirm(pokemonName + " is trying to learn " + moveName + ". " +
-                "But, " + pokemonName + " can't learn more than four moves! " +
-                "Delete an older move to make room for " + moveName + "?", async function (confirmed) {
+    
+                if (message.learned && (Array.isArray(message.learned) ? message.learned.length > 0 : message.learned !== 0)) {
+                    let moveId = Array.isArray(message.learned) ? message.learned[0] : message.learned;
+                    const dataMove = await getData('moveId', moveId);
+                    const moveName = dataMove[0].Name;
+    
+                    await showModalPromise(`${pokemonName} learned ${moveName}!`);
+                    await confirmAction(actionId, token, socket);
+    
+                    if (message.expToAdd > 0) {
+                        lastExpToAdd = message.expToAdd;
+                        await addEXP(message.pokemonId, message.expToAdd, token, socket);
+                    }
+                }
+    
+                if (message.moveSwap && (Array.isArray(message.moveSwap) ? message.moveSwap.length > 0 : message.moveSwap !== 0)) {
+                    let moveId = message.moveSwap;
+                    const dataMove = await getData('moveId', moveId);
+                    const moveName = dataMove[0].Name;
+    
+                    const confirmed = await confirmPromise(
+                        `${pokemonName} is trying to learn ${moveName}. But, ${pokemonName} can't learn more than four moves! Delete an older move to make room for ${moveName}?`
+                    );
+    
                     if (confirmed) {
-                        prompt('Which order?', async function (moveOrder) {
-                            if (moveOrder !== null) {
-                                const data = {
-                                    type: 'learn_move',
-                                    pokemonId: message.pokemonId,
-                                    moveId: moveId,
-                                    moveOrder: moveOrder,
-                                    token: token
-                                };
-                                socket.send(JSON.stringify(data));
-                                console.log("Move learned!");
-
-                            } else {
-                                console.log("Move learning was cancelled in the prompt.");
-
-                            }
-                        });
+                        const moveOrder = await promptPromise('Which order?');
+                        if (moveOrder !== null) {
+                            const data = {
+                                type: 'learn_move',
+                                pokemonId: message.pokemonId,
+                                moveId: moveId,
+                                moveOrder: moveOrder,
+                                token: token
+                            };
+                            socket.send(JSON.stringify(data));
+                            console.log("Move learned!");
+                        } else {
+                            console.log("Move learning was cancelled in the prompt.");
+                        }
                     } else {
                         console.log("Cancelled!");
-                        confirmAction(actionId, token, socket);
+                        await confirmAction(actionId, token, socket);
                     }
-                });
-        }
-
-        if (message.evolve) {
-            evolution = 1;
-            dataDex = await getData('pokedexId', message.evolve);
-            pokemonNewName = dataDex[0].Name;
-        }
-
-        if (evolution) {
-            confirm(pokemonName + ' is evolving! Continue?', function (confirmed) {
-                if (confirmed) {
-                    const data = {
-                        type: 'evolve_mon',
-                        pokemonId: message.pokemonId,
-                        evoType: 'EXP',
-                        expToAdd: lastExpToAdd ?? 0,
-                        token: token
-                    };
-                    socket.send(JSON.stringify(data));
-                    lastExpToAdd = 0;
-                    showModal(pokemonName + " evolved into " + pokemonNewName + "!", function () {
-                    });
-                } else {
-                    showModal("Huh? " + pokemonName + " stopped evolving!", function () {
-                    });
                 }
-                confirmAction(actionId, token, socket);
-                evolution = 0;
-                pokemonNewName = 0;
-            });
-        }
+    
+                if (message.evolve) {
+                    evolution = 1;
+                    const dataDex = await getData('pokedexId', message.evolve);
+                    pokemonNewName = dataDex[0].Name;
+                }
+    
+                if (evolution) {
+                    const confirmed = await confirmPromise(`${pokemonName} is evolving! Continue?`);
+                    if (confirmed) {
+                        const data = {
+                            type: 'evolve_mon',
+                            pokemonId: message.pokemonId,
+                            evoType: 'EXP',
+                            expToAdd: lastExpToAdd ?? 0,
+                            token: token
+                        };
+                        socket.send(JSON.stringify(data));
+                        lastExpToAdd = 0;
+                        await showModalPromise(`${pokemonName} evolved into ${pokemonNewName}!`);
+                    } else {
+                        await showModalPromise(`Huh? ${pokemonName} stopped evolving!`);
+                    }
+                    await confirmAction(actionId, token, socket);
+                    evolution = 0;
+                    pokemonNewName = 0;
+                }
+    
+                await getPartyPokemon();
+                await getBoxPokemon();
+                resolve(); // Resolve the promise when done
+            } catch (error) {
+                console.error('Error handling message:', error);
+                reject(error); // Reject the promise in case of an error
+            }
+        });
+    }
 
-        getPartyPokemon();
-        getBoxPokemon();
+    function showModalPromise(message) {
+        return new Promise((resolve) => {
+            showModal(message, resolve);
+        });
+    }
+
+    function confirmPromise(message) {
+        return new Promise((resolve) => {
+            confirm(message, resolve);
+        });
+    }
+
+    function promptPromise(message) {
+        return new Promise((resolve) => {
+            prompt(message, resolve);
+        });
     }
 
     $("#editbutton").click(function () {
@@ -444,16 +488,38 @@ $(document).ready(async function () {
     });
 
     socket.addEventListener('message', async function (event) {
-        var message = JSON.parse(event.data);
-        handleMessage(message, token, socket);
+        const message = JSON.parse(event.data);
+        console.log('Incoming message:');
+        console.log(message);
+
+        if (message.responseFrom !== 'confirm_action') {
+            console.log('Process unfinished data on message:');
+            console.log(message);
+            getUnfinishedAction().then(function (unfinishedData) {
+                try {
+                    const data = JSON.parse(unfinishedData);
+                    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                        unfinishedTasks = data.data;
+                        processNextTask(socket);
+                    }
+                } catch (error) {
+                    console.error('Error parsing unfinished action data:', error);
+                }
+            }).catch(function (error) {
+                console.error('Error getting unfinished action:', error);
+            });
+        } else {
+            console.log(message.actionId + ' completed!');
+        }
+
+        getPartyPokemon();
+        getBoxPokemon();
     });
 
     $('#addExp').on('click', async function () {
         const pokemonId = $('#addexp-pokemonId').val();
         var exp = $('#addexp-exp').val();
         addEXP(pokemonId, exp, token, socket);
-        getPartyPokemon();
-        getBoxPokemon();
     });
 
     $('#addPokemon').click(async function () {

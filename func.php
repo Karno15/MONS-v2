@@ -130,25 +130,58 @@ function saveUserAction($payload, $token)
 
     mysqli_stmt_close($stmt);
 
+    print_r($data);
+
     return !empty($insertIds) ? $insertIds : 0;
 }
 
 
-function confirmAction($actionId, $token)
+function confirmAction($actionIdInput, $token)
 {
     global $conn;
 
     $tokenData = getTokenData($token);
     $userId = $tokenData['userid'];
 
-    $query = "UPDATE useractions SET Done = 1 where UserId = ? AND UserActionId = ?";
+    $actionIds = [];
+
+    if (is_array($actionIdInput)) {
+        foreach ($actionIdInput as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $subValue) {
+                    $actionIds[] = $subValue;
+                }
+            } else {
+                $actionIds[] = $value;
+            }
+        }
+    } else {
+        $actionIds[] = $actionIdInput;
+    }
+
+    if (empty($actionIds)) {
+        return false;
+    }
+
+    $query = "UPDATE useractions SET Done = 1 WHERE UserId = ? AND UserActionId = ?";
     $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'ii', $userId, $actionId);
-    $result = mysqli_stmt_execute($stmt);
+
+    $result = true;
+
+    foreach ($actionIds as $actionId) {
+        mysqli_stmt_bind_param($stmt, 'ii', $userId, $actionId);
+        $executeResult = mysqli_stmt_execute($stmt);
+        if (!$executeResult) {
+            $result = false;
+        }
+    }
+
     mysqli_stmt_close($stmt);
 
-    return $result ? true : false;
+    return $result;
 }
+
+
 
 function addMessage($message)
 {
@@ -494,7 +527,6 @@ function addExp($pokemonId, $expGained, $token)
         $result['expToAdd'] = $result['expToAdd'] ?? 0;
         $result['levelup'] = $result['levelup'] ?? 0;
         $result['success'] = true;
-
         $result['actionId'] = saveUserAction(json_encode($result), $token);
         return $result;
     }
