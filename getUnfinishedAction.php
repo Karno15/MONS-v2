@@ -26,25 +26,4 @@ if (empty($response)) {
     exit(json_encode(['success' => true, 'data' => []]));
 }
 
-function sortActions($a, $b) {
-    $order = ['levelup', 'learned', 'evolve'];
-
-    foreach ($order as $key) {
-        $aHasKey = isset($a[$key]);
-        $bHasKey = isset($b[$key]);
-
-        if ($aHasKey && !$bHasKey) {
-            return -1;
-        } elseif (!$aHasKey && $bHasKey) {
-            return 1;
-        } elseif ($aHasKey && $bHasKey) {
-            return 0;
-        }
-    }
-
-    return 0;
-}
-
-usort($response, 'sortActions');
-
 echo json_encode(['success' => true, 'data' => $response]);

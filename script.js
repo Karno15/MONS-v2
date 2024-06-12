@@ -395,43 +395,41 @@ $(document).ready(async function () {
     }
 
     function displayPromptModal(data) {
-        const modal = document.getElementById('prompt-modal');
-        const modalMessage = document.getElementById('prompt-message');
-        const promptInput = document.getElementById('prompt-input');
-        const okButton = document.getElementById('prompt-ok-button');
-        const cancelButton = document.getElementById('prompt-cancel-button');
+        const $modal = $('#prompt-modal');
+        const $modalMessage = $('#prompt-message');
+        const $promptInput = $('#prompt-input');
+        const $okButton = $('#prompt-confirm-button');
+        const $cancelButton = $('#prompt-cancel-button');
 
-        modalMessage.textContent = data.message;
-        modal.style.display = 'block';
+        $modalMessage.text(data.message);
+        $modal.show();
 
-        okButton.onclick = function () {
-            modal.style.display = 'none';
+        $okButton.off('click').on('click', function () {
+            $modal.hide();
             if (typeof data.callback === 'function') {
-                data.callback(promptInput.value);
+                data.callback($promptInput.val());
             }
             isModalShowing = false;
             displayNextModal();
-        };
+        });
 
-        cancelButton.onclick = function () {
-            modal.style.display = 'none';
+        $cancelButton.off('click').on('click', function () {
+            $modal.hide();
             if (typeof data.callback === 'function') {
                 data.callback(null);
             }
             isModalShowing = false;
             displayNextModal();
-        };
+        });
     }
-
+    var lastExpToAdd = 0;
     async function handleMessage(message, token, socket) {
         return new Promise(async (resolve, reject) => {
             try {
                 console.log('begin handling');
                 console.log(message);
-
                 const actionId = message.actionId ?? 0;
                 let pokemonName = '';
-                var lastExpToAdd = 0;
                 let pokemonNewName = '';
 
                 if (message.pokemonId) {
@@ -460,33 +458,11 @@ $(document).ready(async function () {
                 }
 
                 if (message.moveSwap && (Array.isArray(message.moveSwap) ? message.moveSwap.length > 0 : message.moveSwap !== 0)) {
-                    let moveId = message.moveSwap;
+                    const moveId = message.moveSwap;
                     const dataMove = await getData('moveId', moveId);
                     const moveName = dataMove[0].Name;
 
-                    const confirmed = await confirmPromise(
-                        `${pokemonName} is trying to learn ${moveName}. But, ${pokemonName} can't learn more than four moves! Delete an older move to make room for ${moveName}?`
-                    );
-
-                    if (confirmed) {
-                        const moveOrder = await promptPromise('Which order?');
-                        if (moveOrder !== null) {
-                            const data = {
-                                type: 'learn_move',
-                                pokemonId: message.pokemonId,
-                                moveId: moveId,
-                                moveOrder: moveOrder,
-                                token: token
-                            };
-                            socket.send(JSON.stringify(data));
-                            console.log("Move learned!");
-                        } else {
-                            console.log("Move learning was cancelled in the prompt.");
-                        }
-                    } else {
-                        console.log("Cancelled!");
-                        await confirmAction(actionId, token, socket);
-                    }
+                    await handleMoveSwap(pokemonName, moveName, message, token, socket, actionId);
                 }
 
                 if (message.evolve) {
@@ -500,6 +476,7 @@ $(document).ready(async function () {
                             token: token
                         };
                         socket.send(JSON.stringify(data));
+                        addEXP(message.pokemonId, lastExpToAdd, token, socket);
                         pokemonData = await getData('pokemonId', message.pokemonId);
                         pokemonNewName = pokemonData[0].Name;
                         await showModalPromise(`${pokemonName} evolved into ${pokemonNewName}!`);
@@ -511,10 +488,10 @@ $(document).ready(async function () {
 
                 await getPartyPokemon();
                 await getBoxPokemon();
-                resolve(); // Resolve the promise when done
+                resolve();
             } catch (error) {
                 console.error('Error handling message:', error);
-                reject(error); // Reject the promise in case of an error
+                reject(error);
             }
         });
     }
@@ -598,6 +575,39 @@ $(document).ready(async function () {
         getPartyPokemon();
         getBoxPokemon();
     });
+
+    async function handleMoveSwap(pokemonName, moveName, message, token, socket, actionId) {
+        let moveConfirmed = false;
+
+        while (!moveConfirmed) {
+            const confirmed = await confirmPromise(
+                `${pokemonName} is trying to learn ${moveName}. But, ${pokemonName} can't learn more than four moves! Delete an older move to make room for ${moveName}?`
+            );
+
+            if (confirmed) {
+                const moveOrder = await promptPromise('Which order?');
+                if (moveOrder !== null) {
+                    const data = {
+                        type: 'learn_move',
+                        pokemonId: message.pokemonId,
+                        moveId: message.moveSwap,
+                        moveOrder: moveOrder,
+                        token: token
+                    };
+                    socket.send(JSON.stringify(data));
+                    console.log("Move learned!");
+                    moveConfirmed = true;
+                } else {
+                    console.log("Move learning was cancelled in the prompt.");
+                }
+            } else {
+                console.log("Cancelled!");
+                moveConfirmed = true;
+            }
+        }
+
+        await confirmAction(actionId, token, socket);
+    }
 
     $('#addExp').on('click', async function () {
         const pokemonId = $('#addexp-pokemonId').val();

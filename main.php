@@ -47,8 +47,9 @@ setcookie("token", $token, time() + (86400 * 30), "/");
     <div id="prompt-modal" class="modal">
         <div class="modal-content">
             <span id="prompt-message"></span>
-            <input type="text" id="prompt-input" />
-            <button id="prompt-ok-button">OK</button>
+            <input type="text" id="prompt-input" /><br />
+            <button id="prompt-confirm-button">OK</button>
+            <button id="prompt-cancel-button">CANCEL</button>
         </div>
     </div>
 
