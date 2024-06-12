@@ -178,7 +178,7 @@ body {
     text-align: center;
   }
   
-  #modal-confirm-button {
+  #modal-confirm-button, #confirm-yes-button, #confirm-no-button {
     padding: 10px 20px;
     background-color: #4CAF50;
     color: white;

@@ -87,12 +87,13 @@ class MyWebSocketServer implements MessageComponentInterface
                     if (isset($data['pokemonId'])) {
                         $pokemonId = $data['pokemonId'];
                         $evoType = $data['evoType'] ?? 'EXP';
-                        $expToAdd = $data['expToAdd'] ?? 0;
                         $evoMon = evolvePokemon($pokemonId, $evoType, $data['token']);
+
+                        print_r($evoMon);
 
                         $from->send(json_encode([
                             'success' => true,
-                            'responseFrom' => 'grant_exp'
+                            'responseFrom' => 'evolve_mon'
                         ]));
                     }
                     break;

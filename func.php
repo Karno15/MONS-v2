@@ -103,35 +103,42 @@ function saveUserAction($payload, $token)
         }
     }
 
+    $tokenData = getTokenData($token);
+    $userId = $tokenData['userid'];
+
     if ($data['evolve'] > 0) {
-        $actions['evolve'] = json_encode([
+        $evolvePayload = json_encode([
             'evolve' => $data['evolve'],
             'pokemonId' => $data['pokemonId']
         ]);
+        $checkQuery = "SELECT 1 FROM useractions WHERE UserId = ? AND Done = 0 AND JSON_EXTRACT(Payload, '$.evolve') = ?";
+        $checkStmt = $conn->prepare($checkQuery);
+        $checkStmt->bind_param('is', $userId, $data['evolve']);
+        $checkStmt->execute();
+        $checkStmt->store_result();
+
+        if ($checkStmt->num_rows === 0) {
+            $actions['evolve'] = $evolvePayload;
+        }
+        $checkStmt->close();
     }
 
     if (empty($actions)) {
         return 0;
     }
 
-    $tokenData = getTokenData($token);
-    $userId = $tokenData['userid'];
-
     $query = "INSERT INTO useractions (`UserId`, `Payload`) VALUES (?, ?)";
-    $stmt = mysqli_prepare($conn, $query);
+    $stmt = $conn->prepare($query);
 
     foreach ($actions as $key => $action) {
-        mysqli_stmt_bind_param($stmt, 'is', $userId, $action);
-        $result = mysqli_stmt_execute($stmt);
+        $stmt->bind_param('is', $userId, $action);
+        $result = $stmt->execute();
         if ($result) {
-            $insertIds[$key] = mysqli_insert_id($conn);
+            $insertIds[$key] = $conn->insert_id;
         }
     }
 
-    mysqli_stmt_close($stmt);
-
-    print_r($data);
-
+    $stmt->close();
     return !empty($insertIds) ? $insertIds : 0;
 }
 
@@ -178,7 +185,7 @@ function confirmAction($actionIdInput, $token)
 
     mysqli_stmt_close($stmt);
 
-    return $result;
+    return 1;
 }
 
 
@@ -404,29 +411,6 @@ function evolvePokemon($pokemonId, $evoType, $token)
         fillMonStats($pokemonId);
 
         $result = array('success' => true, 'message' => $evoInfo, 'pokemonId' => $pokemonId);
-
-        $newMove = canLearnMove($pokemonId);
-        $result['moveSwap'] = [];
-        $result['learned'] = [];
-        if (!empty($newMove['moves'])) {
-            $result['pokemonId'] = $pokemonId;
-            if ($newMove['moveCount'] >= 4) {
-                foreach ($newMove['moves'] as $moveId) {
-                    array_push($result['moveSwap'], $moveId);
-                }
-            } else {
-                $orderNumber = $newMove['moveCount'] + 1;
-                foreach ($newMove['moves'] as $moveId) {
-                    if ($orderNumber <= 4) {
-                        learnMove($pokemonId, $moveId, $orderNumber, $token);
-                        array_push($result['learned'], $moveId);
-                        $orderNumber++;
-                    } else {
-                        array_push($result['moveSwap'], $moveId);
-                    }
-                }
-            }
-        }
 
         echo json_encode($result) . "\n";
         return $result;

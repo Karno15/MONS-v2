@@ -31,10 +31,27 @@ setcookie("token", $token, time() + (86400 * 30), "/");
 <body>
     <div id="modal" class="modal">
         <div class="modal-content">
-            <span id="modal-message"></span>
-            <button id="modal-confirm-button">CONFIRM</button>
+            <span id="modal-message"></span><br/>
+            <button id="modal-confirm-button">OK</button>
         </div>
     </div>
+
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <span id="confirm-message"></span><br/>
+            <button id="confirm-yes-button">Yes</button>
+            <button id="confirm-no-button">No</button>
+        </div>
+    </div>
+
+    <div id="prompt-modal" class="modal">
+        <div class="modal-content">
+            <span id="prompt-message"></span>
+            <input type="text" id="prompt-input" />
+            <button id="prompt-ok-button">OK</button>
+        </div>
+    </div>
+
     <div id="container">
         <button id="editbutton">EDIT PROFILE</button><a href="logout.php">LOGOUT</a>
         <div id="editbox">
