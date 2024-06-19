@@ -407,8 +407,32 @@ function evolvePokemon($pokemonId, $evoType, $token)
 
         logServerMessage($evoInfo);
         addMessage($evoInfo);
-
         fillMonStats($pokemonId);
+
+        $newMove = canLearnMove($pokemonId);
+        $resultMove['moveSwap'] = [];
+        $resultMove['learned'] = [];
+        $resultMove['pokemonId'] = $pokemonId;
+        print_r($newMove);
+        if (!empty($newMove['moves'])) {
+            if ($newMove['moveCount'] >= 4) {
+                foreach ($newMove['moves'] as $moveId) {
+                    array_push($resultMove['moveSwap'], $moveId);
+                }
+            } else {
+                $orderNumber = $newMove['moveCount'] + 1;
+                foreach ($newMove['moves'] as $moveId) {
+                    if ($orderNumber <= 4) {
+                        learnMove($pokemonId, $moveId, $orderNumber, $token);
+                        array_push($resultMove['learned'], $moveId);
+                        $orderNumber++;
+                    } else {
+                        array_push($resultMove['moveSwap'], $moveId);
+                    }
+                }
+            }
+            saveUserAction(json_encode($resultMove), $token);
+        }
 
         $result = array('success' => true, 'message' => $evoInfo, 'pokemonId' => $pokemonId);
 
@@ -533,8 +557,13 @@ function addMon($pokedexId, $level, $token)
 
     $lastInsertId = mysqli_insert_id($conn);
 
+    $query = "SELECT MoveId, MAX(Level) as Level 
+    FROM learnset 
+    WHERE PokedexId = ? AND Level <= ?
+    GROUP BY MoveId
+    ORDER BY Level DESC
+    LIMIT 4;";
 
-    $query = "SELECT MoveId, Level FROM learnset WHERE PokedexId= ? and Level<= ? Order by Level desc limit 4";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'ii', $pokedexId, $level);
     mysqli_stmt_execute($stmt);

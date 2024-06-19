@@ -117,6 +117,22 @@ function createMovesView(pokemon) {
             });
 
             moveInfo.append(moveType, moveEffect, movePP, movePower, moveAccuracy, moveDescription);
+
+            (function (moveInfo) {
+                moveName.hover(function () {
+                    var offset = $(this).offset();
+                    var height = $(this).outerHeight();
+                    var width = $(this).outerWidth();
+                    var moveInfoWidth = moveInfo.outerWidth();
+                    moveInfo.css({
+                        top: offset.top + height + 10,
+                        left: offset.left - moveInfoWidth / 2 + width / 2
+                    });
+                    moveInfo.show();
+                }, function () {
+                    moveInfo.hide();
+                });
+            })(moveInfo);
         } else {
             moveName.text('-');
         }
@@ -125,23 +141,6 @@ function createMovesView(pokemon) {
         moveCard.append(moveName);
         $('body').append(moveInfo);
         moveInfo.hide();
-
-        (function (moveInfo) {
-            moveName.hover(function () {
-                var offset = $(this).offset();
-                var height = $(this).outerHeight();
-                var width = $(this).outerWidth();
-                var moveInfoHeight = moveInfo.outerHeight();
-                var moveInfoWidth = moveInfo.outerWidth();
-                moveInfo.css({
-                    top: offset.top + height + 10,
-                    left: offset.left - moveInfoWidth / 2 + width / 2
-                });
-                moveInfo.show();
-            }, function () {
-                moveInfo.hide();
-            });
-        })(moveInfo);
     }
 
     return movesContainer;
@@ -266,9 +265,7 @@ $(document).ready(async function () {
 
                 unfinishedTasks = [...nonEvolveTasks, ...evolveTasks];
 
-                console.log(unfinishedTasks);
                 const task = unfinishedTasks.shift();
-                console.log(unfinishedTasks);
                 try {
                     await handleMessage(task, token, socket);
                 } catch (error) {
@@ -349,21 +346,21 @@ $(document).ready(async function () {
     }
 
     function displayAlertModal(data) {
-        const modal = document.getElementById('modal');
-        const modalMessage = document.getElementById('modal-message');
-        const confirmButton = document.getElementById('modal-confirm-button');
+        const modal = $('#modal');
+        const modalMessage = $('#modal-message');
+        const confirmButton = $('#modal-confirm-button');
 
-        modalMessage.textContent = data.message;
-        modal.style.display = 'block';
+        modalMessage.text(data.message);
+        modal.css('display', 'block');
 
-        confirmButton.onclick = function () {
-            modal.style.display = 'none';
+        confirmButton.on('click', function () {
+            modal.css('display', 'none');
             if (typeof data.callback === 'function') {
                 data.callback();
             }
             isModalShowing = false;
             displayNextModal();
-        };
+        });
     }
 
     function displayConfirmModal(data) {
@@ -595,13 +592,13 @@ $(document).ready(async function () {
                         token: token
                     };
                     socket.send(JSON.stringify(data));
-                    console.log("Move learned!");
+                    await showModalPromise(`${pokemonName} learned ${moveName}!`);
                     moveConfirmed = true;
                 } else {
                     console.log("Move learning was cancelled in the prompt.");
                 }
             } else {
-                console.log("Cancelled!");
+                await showModalPromise(`${pokemonName} didn't learn ${moveName}!`);
                 moveConfirmed = true;
             }
         }
