@@ -9,6 +9,9 @@ $token = generateToken($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"]
 
 setcookie("token", $token, time() + (86400 * 30), "/");
 
+if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
+    echo 'no session';
+}
 ?>
 
 <html>
@@ -31,14 +34,14 @@ setcookie("token", $token, time() + (86400 * 30), "/");
 <body>
     <div id="modal" class="modal">
         <div class="modal-content">
-            <span id="modal-message"></span><br/>
+            <span id="modal-message"></span><br />
             <button id="modal-confirm-button">OK</button>
         </div>
     </div>
 
     <div id="confirm-modal" class="modal">
         <div class="modal-content">
-            <span id="confirm-message"></span><br/>
+            <span id="confirm-message"></span><br />
             <button id="confirm-yes-button">Yes</button>
             <button id="confirm-no-button">No</button>
         </div>
@@ -73,6 +76,16 @@ setcookie("token", $token, time() + (86400 * 30), "/");
 
         echo '<b>' . $_SESSION["login"] . '</b>';
         ?>
+
+        <p>
+            PokemonID1:<input type="number" id="battle-pokemonIdA">
+            <br>
+            PokemonID2:<input type="number" id="battle-pokemonIdB">
+            <br>
+            <button id="battle">Battle</button>
+        </p>
+
+
         <p>
             Pokedex ID:<input type="number" id="addPokemon-PokedexId">
             <br>

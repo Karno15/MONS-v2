@@ -121,6 +121,17 @@ class MyWebSocketServer implements MessageComponentInterface
                         ]));
                     }
                     break;
+                case 'battle_start':
+                    if (isset($data['pokemonIdA'],$data['pokemonIdB'])) {
+                        $pokemonIdA = $data['pokemonIdA'];
+                        $pokemonIdB = $data['pokemonIdB'];
+
+                        $from->send(json_encode([
+                            'success' => true,
+                            'responseFrom' => 'battle_start'
+                        ]));
+                    }
+                    break;
                 default:
                     echo "Invalid message type received from client {$from->resourceId}";
                     logServerMessage("Invalid message type received from client {$from->resourceId}", 'ERROR');
