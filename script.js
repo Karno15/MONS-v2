@@ -348,6 +348,8 @@ $(document).ready(async function () {
         const modalMessage = $('#modal-message');
         const confirmButton = $('#modal-confirm-button');
 
+        $('.move-info').hide();
+
         modalMessage.text(data.message);
         modal.css('display', 'block');
 
@@ -366,6 +368,8 @@ $(document).ready(async function () {
         const modalMessage = document.getElementById('confirm-message');
         const yesButton = document.getElementById('confirm-yes-button');
         const noButton = document.getElementById('confirm-no-button');
+
+        $('.move-info').hide();
 
         modalMessage.textContent = data.message;
         modal.style.display = 'block';
@@ -390,6 +394,9 @@ $(document).ready(async function () {
     }
 
     function displayPromptModal(data) {
+
+        $('.move-info').hide();
+
         const $modal = $('#prompt-modal');
         const $modalMessage = $('#prompt-message');
         const $promptInput = $('#prompt-input');
@@ -608,6 +615,7 @@ $(document).ready(async function () {
         const pokemonId = $('#addexp-pokemonId').val();
         var exp = $('#addexp-exp').val();
         addEXP(pokemonId, exp, token, socket);
+        $('.move-info').hide();
     });
 
     $('#addPokemon').click(async function () {
@@ -644,4 +652,12 @@ $(document).ready(async function () {
         }
     });
 
+    $('#battle').on('click', async function () {
+        
+        const pokemonId = $('#addexp-pokemonId').val();
+
+        var exp = $('#addexp-exp').val();
+
+        addEXP(pokemonId, exp, token, socket);
+    });
 });
