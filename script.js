@@ -176,8 +176,6 @@ function addEXP(pokemonId, exp, token, socket) {
             token: token
         };
         socket.send(JSON.stringify(data));
-    } else {
-        alert('Please enter Pokemon ID and Exp');
     }
 }
 

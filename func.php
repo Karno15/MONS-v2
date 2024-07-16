@@ -173,19 +173,19 @@ function confirmAction($actionIdInput, $token)
     $query = "UPDATE useractions SET Done = 1 WHERE UserId = ? AND UserActionId = ?";
     $stmt = mysqli_prepare($conn, $query);
 
-    $result = true;
+    $result = 1;
 
     foreach ($actionIds as $actionId) {
         mysqli_stmt_bind_param($stmt, 'ii', $userId, $actionId);
         $executeResult = mysqli_stmt_execute($stmt);
         if (!$executeResult) {
-            $result = false;
+            $result = 0;
         }
     }
 
     mysqli_stmt_close($stmt);
 
-    return 1;
+    return $result;
 }
 
 
@@ -521,11 +521,18 @@ function addExp($pokemonId, $expGained, $token)
                 $expToAdd = $expGained;
                 $expGained = 0;
             }
+
+            $query = "CALL fillMonExp(?)";
+            $stmt = mysqli_prepare($conn, $query);
+            mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+            mysqli_stmt_execute($stmt);
+            
             $queryexp = "UPDATE pokemon SET Exp = Exp + ? WHERE PokemonId = ?";
             $stmtexp = mysqli_prepare($conn, $queryexp);
             mysqli_stmt_bind_param($stmtexp, 'ii', $expToAdd, $pokemonId);
             $resultexp = mysqli_stmt_execute($stmtexp);
             mysqli_stmt_close($stmtexp);
+
         } else {
             $result['message'] = 'level capped';
         }
@@ -556,6 +563,11 @@ function addMon($pokedexId, $level, $token)
     mysqli_stmt_close($stmt);
 
     $lastInsertId = mysqli_insert_id($conn);
+
+    $query = "CALL fillMonExp(?)";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $lastInsertId);
+    mysqli_stmt_execute($stmt);
 
     $query = "SELECT MoveId, MAX(Level) as Level 
     FROM learnset 
