@@ -517,22 +517,22 @@ function addExp($pokemonId, $expGained, $token)
                         }
                     }
                 }
+
+                $query = "CALL fillMonExp(?)";
+                $stmt = mysqli_prepare($conn, $query);
+                mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
+                mysqli_stmt_execute($stmt);
             } else {
                 $expToAdd = $expGained;
                 $expGained = 0;
             }
 
-            $query = "CALL fillMonExp(?)";
-            $stmt = mysqli_prepare($conn, $query);
-            mysqli_stmt_bind_param($stmt, 'i', $pokemonId);
-            mysqli_stmt_execute($stmt);
-            
+
             $queryexp = "UPDATE pokemon SET Exp = Exp + ? WHERE PokemonId = ?";
             $stmtexp = mysqli_prepare($conn, $queryexp);
             mysqli_stmt_bind_param($stmtexp, 'ii', $expToAdd, $pokemonId);
             $resultexp = mysqli_stmt_execute($stmtexp);
             mysqli_stmt_close($stmtexp);
-
         } else {
             $result['message'] = 'level capped';
         }

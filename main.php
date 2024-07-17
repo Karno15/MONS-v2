@@ -56,6 +56,15 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         </div>
     </div>
 
+    <div id="option-modal" class="modal">
+        <div class="modal-content">
+            <span id="option-message"></span><br />
+            <div id="option-list"></div>
+            <button id="option-confirm-button">OK</button>
+            <button id="option-cancel-button">CANCEL</button>
+        </div>
+    </div>
+
     <div id="container">
         <button id="editbutton">EDIT PROFILE</button><a href="logout.php">LOGOUT</a>
         <div id="editbox">

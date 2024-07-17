@@ -255,7 +255,7 @@ $(document).ready(async function () {
         if (!isHandlingMessage) {
             isHandlingMessage = true;
 
-            await fetchUnfinishedTasks();
+            //  await fetchUnfinishedTasks();
 
             while (unfinishedTasks.length > 0) {
                 const nonEvolveTasks = unfinishedTasks.filter(task => !task.evolve);
@@ -269,8 +269,7 @@ $(document).ready(async function () {
                 } catch (error) {
                     console.error('Error processing task:', error);
                 }
-
-                await fetchUnfinishedTasks();
+                //location.reload()
             }
 
             isHandlingMessage = false;
@@ -299,6 +298,16 @@ $(document).ready(async function () {
 
     function showConfirmModal(message, callback) {
         const modalData = { type: 'confirm', message, callback };
+        addToModalQueue(modalData);
+    }
+
+    function showOptionModal(message, options, callback) {
+        const modalData = {
+            type: 'option',
+            message: message,
+            options: options,
+            callback: callback
+        };
         addToModalQueue(modalData);
     }
 
@@ -336,6 +345,9 @@ $(document).ready(async function () {
                 break;
             case 'confirm':
                 displayConfirmModal(nextModalData);
+                break;
+            case 'option':
+                displayOptionModal(nextModalData);
                 break;
             case 'prompt':
                 displayPromptModal(nextModalData);
@@ -393,6 +405,48 @@ $(document).ready(async function () {
         };
     }
 
+
+    function displayOptionModal(data) {
+
+        const $modal = $('#option-modal');
+        const $modalMessage = $('#option-message');
+        const $optionList = $('#option-list');
+        const $okButton = $('#option-confirm-button');
+        const $cancelButton = $('#option-cancel-button');
+
+        $modalMessage.text(data.message);
+        $optionList.empty();
+
+        data.options.forEach(option => {
+            const $optionButton = $('<button class="option-button"></button>').text(option).click(function () {
+                $('.option-button').removeClass('selected');
+                $(this).addClass('selected');
+            });
+            $optionList.append($optionButton);
+        });
+
+        $modal.show();
+
+        $okButton.off('click').on('click', function () {
+            const selectedOption = $('.option-button.selected').text();
+            $modal.hide();
+            if (typeof data.callback === 'function') {
+                data.callback(selectedOption);
+            }
+            isModalShowing = false;
+            displayNextModal();
+        });
+
+        $cancelButton.off('click').on('click', function () {
+            $modal.hide();
+            if (typeof data.callback === 'function') {
+                data.callback(null);
+            }
+            isModalShowing = false;
+            displayNextModal();
+        });
+    }
+
     function displayPromptModal(data) {
 
         $('.move-info').hide();
@@ -424,6 +478,7 @@ $(document).ready(async function () {
             displayNextModal();
         });
     }
+
     var lastExpToAdd = 0;
     async function handleMessage(message, token, socket) {
         return new Promise(async (resolve, reject) => {
@@ -487,9 +542,6 @@ $(document).ready(async function () {
                     }
                     pokemonNewName = '';
                 }
-
-                await getPartyPokemon();
-                await getBoxPokemon();
                 resolve();
             } catch (error) {
                 console.error('Error handling message:', error);
@@ -507,6 +559,12 @@ $(document).ready(async function () {
     function confirmPromise(message) {
         return new Promise((resolve) => {
             showConfirmModal(message, resolve);
+        });
+    }
+
+    function optionPromise(message, options) {
+        return new Promise((resolve) => {
+            showOptionModal(message, options, resolve);
         });
     }
 
@@ -573,44 +631,50 @@ $(document).ready(async function () {
         }).catch(function (error) {
             console.error('Error getting unfinished action:', error);
         });
-
         getPartyPokemon();
         getBoxPokemon();
     });
 
     async function handleMoveSwap(pokemonName, moveName, message, token, socket, actionId) {
         let moveConfirmed = false;
-
+    
         while (!moveConfirmed) {
             const confirmed = await confirmPromise(
                 `${pokemonName} is trying to learn ${moveName}. But, ${pokemonName} can't learn more than four moves! Delete an older move to make room for ${moveName}?`
             );
-
+    
             if (confirmed) {
-                const moveOrder = await promptPromise('Which order?');
+    
+                const movesData = await getData('moves', message.pokemonId);
+                console.log(movesData);
+    
+                // Extract move names from movesData
+                const moveNames = movesData.map((move, index) => `${move.Name}`);
+    
+                const moveOrder = await optionPromise('Which move should be replaced?', moveNames);
                 if (moveOrder !== null) {
+                    const moveIndex = moveOrder.split(':')[0].split(' ')[1] - 1; // Extract index from the selected option
                     const data = {
                         type: 'learn_move',
                         pokemonId: message.pokemonId,
                         moveId: message.moveSwap,
-                        moveOrder: moveOrder,
+                        moveOrder: moveIndex,
                         token: token
                     };
                     socket.send(JSON.stringify(data));
                     await showModalPromise(`${pokemonName} learned ${moveName}!`);
                     moveConfirmed = true;
                 } else {
-                    console.log("Move learning was cancelled in the prompt.");
+                    console.log("Move learning was cancelled by user.");
                 }
             } else {
                 await showModalPromise(`${pokemonName} didn't learn ${moveName}!`);
                 moveConfirmed = true;
             }
         }
-
+    
         await confirmAction(actionId, token, socket);
     }
-
     $('#addExp').on('click', async function () {
         const pokemonId = $('#addexp-pokemonId').val();
         var exp = $('#addexp-exp').val();
@@ -653,7 +717,7 @@ $(document).ready(async function () {
     });
 
     $('#battle').on('click', async function () {
-        
+
         const pokemonId = $('#addexp-pokemonId').val();
 
         var exp = $('#addexp-exp').val();

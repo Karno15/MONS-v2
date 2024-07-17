@@ -35,12 +35,25 @@ switch ($key) {
         }
         break;
     case 'pokedexId':
-        if ($stmt = $conn->prepare("SELECT * FROM pokedex WHERE PokedexId = ?")) {  // Corrected table name to 'pokedex'
+        if ($stmt = $conn->prepare("SELECT * FROM pokedex WHERE PokedexId = ?")) {
             $stmt->bind_param("i", $value);
             $stmt->execute();
             $result = $stmt->get_result();
             $response = $result->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
+        }
+        break;
+    case 'moves':
+        if ($stmt = $conn->prepare("CALL showPokemonMoves(?)")) {
+            mysqli_stmt_bind_param($stmt, 'i', $value);
+            mysqli_stmt_execute($stmt);
+            $movesResult = mysqli_stmt_get_result($stmt);
+            $movesData = array();
+            while ($movesRow = mysqli_fetch_assoc($movesResult)) {
+                $movesData[] = $movesRow;
+            }
+            mysqli_stmt_close($stmt);
+            $response = $movesData;
         }
         break;
     default:
