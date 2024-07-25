@@ -26,7 +26,8 @@ switch ($key) {
         }
         break;
     case 'moveId':
-        if ($stmt = $conn->prepare("SELECT * FROM moves WHERE MoveId = ?")) {
+        if ($stmt = $conn->prepare('select m.MoveId, m.Name, m.Effect, m.PP, m.Power, m.Accuracy, m.Description, t.Name as "TypeName",t.TypeColor
+         from moves m JOIN types t ON t.TypeId=m.Type where m.MoveId= ?;')) {
             $stmt->bind_param("i", $value);
             $stmt->execute();
             $result = $stmt->get_result();

@@ -11,6 +11,7 @@ setcookie("token", $token, time() + (86400 * 30), "/");
 
 if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
     echo 'no session';
+    header('Location: index.php');
 }
 ?>
 
@@ -32,18 +33,23 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
 </head>
 
 <body>
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <div class="loading-info">Loading...</div>
+    </div>
+
     <div id="modal" class="modal">
         <div class="modal-content">
             <span id="modal-message"></span><br />
-            <button id="modal-confirm-button">OK</button>
+            <button class='popup-buttons' id="modal-confirm-button">OK</button>
         </div>
     </div>
 
     <div id="confirm-modal" class="modal">
         <div class="modal-content">
             <span id="confirm-message"></span><br />
-            <button id="confirm-yes-button">Yes</button>
-            <button id="confirm-no-button">No</button>
+            <button class='popup-buttons' id="confirm-yes-button">Yes</button>
+            <button class='popup-buttons' id="confirm-no-button">No</button>
         </div>
     </div>
 
@@ -51,8 +57,8 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         <div class="modal-content">
             <span id="prompt-message"></span>
             <input type="text" id="prompt-input" /><br />
-            <button id="prompt-confirm-button">OK</button>
-            <button id="prompt-cancel-button">CANCEL</button>
+            <button class='popup-buttons' id="prompt-confirm-button">OK</button>
+            <button class='popup-buttons' id="prompt-cancel-button">CANCEL</button>
         </div>
     </div>
 
@@ -60,8 +66,8 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         <div class="modal-content">
             <span id="option-message"></span><br />
             <div id="option-list"></div>
-            <button id="option-confirm-button">OK</button>
-            <button id="option-cancel-button">CANCEL</button>
+            <button class='popup-buttons' id="option-confirm-button">OK</button>
+            <button class='popup-buttons' id="option-cancel-button">CANCEL</button>
         </div>
     </div>
 

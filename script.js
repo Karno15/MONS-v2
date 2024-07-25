@@ -3,7 +3,19 @@ function getCookie(name) {
     return cookieValue ? cookieValue.pop() : '';
 }
 
+function showLoadingCircle(text) {
+    $('.loading-info').text(text);
+    $('#loading-overlay').stop(true, true).fadeIn(100);
+    loadingVisible = true;
+}
+
+function hideLoadingCircle() {
+    $('#loading-overlay').stop(true, true).fadeOut(100);
+    loadingVisible = false;
+}
+
 function getPartyPokemon() {
+    showLoadingCircle('Loading Pokemon...');
     $.ajax({
         url: 'getPartyPokemon.php',
         method: 'GET',
@@ -19,6 +31,7 @@ function getPartyPokemon() {
 }
 
 function getBoxPokemon() {
+    showLoadingCircle('Loading Pokemon...')
     $.ajax({
         url: 'getBoxPokemon.php',
         method: 'GET',
@@ -36,11 +49,29 @@ function getBoxPokemon() {
 function createViewSpriteLevel(pokemon) {
     var spritesPath = 'sprites/pkfront/';
 
-    return $('<div></div>')
-        .append(`<div class="pokemon-name" class="pokemon-view">${pokemon.Name}</div>`)
-        .append(`<div class="pokemon-stat"> ${pokemon.PokemonId}</b></div>`)
-        .append(`<div class="pokemon-sprite"><img src="image.php?path=${spritesPath}${pokemon.PokedexId}.png" alt="sprite" /></div>`)
-        .append(`<div class="pokemon-stat"><b>Level: ${pokemon.Level}</b></div>`);
+    var container = $('<div></div>');
+    var pokemonName = $(`<div class="pokemon-name" class="pokemon-view">${pokemon.Name}</div>`);
+    var pokemonStatId = $(`<div class="pokemon-stat"> ${pokemon.PokemonId}</div>`);
+    var pokemonSpriteContainer = $(`<div class="pokemon-sprite"></div>`);
+    var pokemonStatLevel = $(`<div class="pokemon-stat"><b>Level: ${pokemon.Level}</b></div>`);
+
+    var pokemonSprite = $(`<img src="image.php?path=${spritesPath}${pokemon.PokedexId}.png" alt="sprite" />`);
+
+    showLoadingCircle('Loading Pokemon...');
+
+    pokemonSprite.on('load', function () {
+        hideLoadingCircle();
+    });
+
+    pokemonSprite.on('error', function () {
+        hideLoadingCircle();
+        console.error('Error loading image:', pokemonSprite.attr('src'));
+    });
+
+    pokemonSpriteContainer.append(pokemonSprite);
+    container.append(pokemonName, pokemonStatId, pokemonSpriteContainer, pokemonStatLevel);
+
+    return container;
 }
 
 function createHPView(pokemon) {
@@ -146,6 +177,33 @@ function createMovesView(pokemon) {
     return movesContainer;
 }
 
+function generateMoveInfoHtml(move) {
+    var moveDescription = $('<div></div>').addClass('move-description').text(move.Description);
+    var moveEffect = $('<div></div>').addClass('move-effect').text('Effect: ' + move.Effect);
+    var movePP = $('<div></div>').addClass('move-pp').text('PP: ' + move.PP + "/" + move.PP);
+    var movePower = $('<div></div>').addClass('move-power').text('Power: ' + (move.Power ? move.Power : '-'));
+    var moveAccuracy = $('<div></div>').addClass('move-accuracy').text('Accuracy: ' + move.Accuracy);
+    var moveType = $('<div></div>').addClass('move-type').text('Type: ' + move.TypeName);
+
+    moveType.css({
+        'background-color': '#' + move.TypeColor,
+        'padding': '3px 8px',
+        'border-radius': '3px',
+        'display': 'inline-block'
+    });
+    
+    var moveInfoContainer = $('<div></div>').addClass('move-info-popup')
+        .append(moveDescription)
+        .append(moveEffect)
+        .append(movePP)
+        .append(movePower)
+        .append(moveAccuracy)
+        .append(moveType);
+
+
+    return moveInfoContainer;
+}
+
 function displayPokemon(data, container) {
     container.empty();
 
@@ -180,6 +238,7 @@ function addEXP(pokemonId, exp, token, socket) {
 }
 
 function getData(key, value) {
+    showLoadingCircle('Loading data...')
     return $.ajax({
         url: 'getData.php',
         method: 'POST',
@@ -190,6 +249,7 @@ function getData(key, value) {
         dataType: 'json'
     }).then(
         function (response) {
+            hideLoadingCircle();
             return response;
         },
         function (xhr, status, error) {
@@ -212,9 +272,11 @@ $(document).ready(async function () {
                 token: token
             };
             socket.send(JSON.stringify(data));
+            showLoadingCircle('Loading data...');
             socket.addEventListener('message', function onConfirm(event) {
                 const message = JSON.parse(event.data);
                 if (message.responseFrom === 'confirm_action' && message.actionId === actionId) {
+                    hideLoadingCircle();
                     socket.removeEventListener('message', onConfirm);
                     const index = pendingTasks.indexOf(actionId);
                     if (index > -1) {
@@ -228,18 +290,20 @@ $(document).ready(async function () {
 
     function getUnfinishedAction() {
         return new Promise(function (resolve, reject) {
+            showLoadingCircle('Loading action...')
             $.ajax({
                 url: 'getUnfinishedAction.php',
                 type: 'GET',
                 success: function (response) {
                     message = JSON.parse(response);
-                    console.log('Unfinished actions from ajax:')
                     console.log(message);
                     resolve(response);
+                    hideLoadingCircle();
                 },
                 error: function (xhr, status, error) {
                     console.error(error);
                     reject(error);
+                    hideLoadingCircle();
                 }
             });
         });
@@ -255,8 +319,7 @@ $(document).ready(async function () {
         if (!isHandlingMessage) {
             isHandlingMessage = true;
 
-            //  await fetchUnfinishedTasks();
-
+            await fetchUnfinishedTasks();
             while (unfinishedTasks.length > 0) {
                 const nonEvolveTasks = unfinishedTasks.filter(task => !task.evolve);
                 const evolveTasks = unfinishedTasks.filter(task => task.evolve);
@@ -268,8 +331,9 @@ $(document).ready(async function () {
                     await handleMessage(task, token, socket);
                 } catch (error) {
                     console.error('Error processing task:', error);
+                    showModalPromise('Error!');
                 }
-                //location.reload()
+                location.reload()
             }
 
             isHandlingMessage = false;
@@ -355,7 +419,8 @@ $(document).ready(async function () {
         }
     }
 
-    function displayAlertModal(data) {
+    async function displayAlertModal(data) {
+        hideLoadingCircle();
         const modal = $('#modal');
         const modalMessage = $('#modal-message');
         const confirmButton = $('#modal-confirm-button');
@@ -375,7 +440,7 @@ $(document).ready(async function () {
         });
     }
 
-    function displayConfirmModal(data) {
+    async function displayConfirmModal(data) {
         const modal = document.getElementById('confirm-modal');
         const modalMessage = document.getElementById('confirm-message');
         const yesButton = document.getElementById('confirm-yes-button');
@@ -406,21 +471,23 @@ $(document).ready(async function () {
     }
 
 
-    function displayOptionModal(data) {
+    async function displayOptionModal(data) {
 
         const $modal = $('#option-modal');
         const $modalMessage = $('#option-message');
         const $optionList = $('#option-list');
         const $okButton = $('#option-confirm-button');
         const $cancelButton = $('#option-cancel-button');
+        let selectedOption = null;
 
-        $modalMessage.text(data.message);
+        $modalMessage.html(data.message);
         $optionList.empty();
 
         data.options.forEach(option => {
-            const $optionButton = $('<button class="option-button"></button>').text(option).click(function () {
+            const $optionButton = $('<button class="option-button"></button>').html(option).click(function () {
                 $('.option-button').removeClass('selected');
                 $(this).addClass('selected');
+                selectedOption = option;
             });
             $optionList.append($optionButton);
         });
@@ -428,16 +495,19 @@ $(document).ready(async function () {
         $modal.show();
 
         $okButton.off('click').on('click', function () {
-            const selectedOption = $('.option-button.selected').text();
-            $modal.hide();
-            if (typeof data.callback === 'function') {
-                data.callback(selectedOption);
+            if (selectedOption === null) {
+                alert('Please select a move before confirming.');
+            } else {
+                $modal.hide();
+                if (typeof data.callback === 'function') {
+                    data.callback(selectedOption);
+                }
+                isModalShowing = false;
+                displayNextModal();
             }
-            isModalShowing = false;
-            displayNextModal();
         });
 
-        $cancelButton.off('click').on('click', function () {
+        $cancelButton.off('click').on('click', async function () {
             $modal.hide();
             if (typeof data.callback === 'function') {
                 data.callback(null);
@@ -447,7 +517,7 @@ $(document).ready(async function () {
         });
     }
 
-    function displayPromptModal(data) {
+    async function displayPromptModal(data) {
 
         $('.move-info').hide();
 
@@ -495,7 +565,6 @@ $(document).ready(async function () {
                 }
 
                 if (message.levelup) {
-                    console.log('Level Up!');
                     await showModalPromise(`${pokemonName} grew to level ${message.levelup}!`);
                     await confirmAction(actionId, token, socket);
 
@@ -517,14 +586,13 @@ $(document).ready(async function () {
                 if (message.moveSwap && (Array.isArray(message.moveSwap) ? message.moveSwap.length > 0 : message.moveSwap !== 0)) {
                     const moveId = message.moveSwap;
                     const dataMove = await getData('moveId', moveId);
-                    const moveName = dataMove[0].Name;
 
-                    await handleMoveSwap(pokemonName, moveName, message, token, socket, actionId);
+                    await handleMoveSwap(pokemonName, dataMove, message, token, socket, actionId);
                 }
 
                 if (message.evolve) {
                     const confirmed = await confirmPromise(`${pokemonName} is evolving! Continue?`);
-                    await confirmAction(actionId, token, socket);
+
                     if (confirmed) {
                         const data = {
                             type: 'evolve_mon',
@@ -540,6 +608,7 @@ $(document).ready(async function () {
                     } else {
                         await showModalPromise(`Huh? ${pokemonName} stopped evolving!`);
                     }
+                    await confirmAction(actionId, token, socket);
                     pokemonNewName = '';
                 }
                 resolve();
@@ -590,6 +659,7 @@ $(document).ready(async function () {
     const socket = new WebSocket('ws://localhost:8080');
 
     socket.addEventListener('open', function (event) {
+        showLoadingCircle('Loading...');
         console.log('Connected to the server');
         getUnfinishedAction().then(function (unfinishedData) {
             try {
@@ -611,14 +681,17 @@ $(document).ready(async function () {
     });
 
     socket.addEventListener('error', function (event) {
+        showModalPromise('Error!');
         console.error('WebSocket error:', event);
     });
 
     socket.addEventListener('message', async function (event) {
+        showLoadingCircle('Loading...');
         const message = JSON.parse(event.data);
         console.log('Incoming message:');
         console.log(message);
         getUnfinishedAction().then(function (unfinishedData) {
+            hideLoadingCircle();
             try {
                 const data = JSON.parse(unfinishedData);
                 if (data.success && Array.isArray(data.data) && data.data.length > 0) {
@@ -635,8 +708,25 @@ $(document).ready(async function () {
         getBoxPokemon();
     });
 
-    async function handleMoveSwap(pokemonName, moveName, message, token, socket, actionId) {
+    async function handleMoveSwap(pokemonName, moveData, message, token, socket, actionId) {
         let moveConfirmed = false;
+        const moveName = moveData[0].Name;
+
+        $(document).on('mouseenter', '.old-move', function () {
+            $(this).find('.move-info-popup').stop(true, true).slideDown(200);
+        }).on('mouseleave', '.old-move', function () {
+            setTimeout(() => {
+                $(this).find('.move-info-popup').stop(true, true).slideUp(200);
+            }, 100);
+        });
+        
+        $(document).on('mouseenter', '.option-button', function () {
+            $(this).find('.move-info-popup').stop(true, true).slideDown(200);
+        }).on('mouseleave', '.option-button', function () {
+            setTimeout(() => {
+                $(this).find('.move-info-popup').stop(true, true).slideUp(200);
+            }, 100);
+        });
     
         while (!moveConfirmed) {
             const confirmed = await confirmPromise(
@@ -644,26 +734,43 @@ $(document).ready(async function () {
             );
     
             if (confirmed) {
-    
                 const movesData = await getData('moves', message.pokemonId);
-                console.log(movesData);
+                const moveNames = movesData.map((move) => {
+                    return `${move.Name}
+                        <div class="move-info-popup" style="display:none;">
+                            ${generateMoveInfoHtml(move).html()}
+                        </div>`;
+                });
     
-                // Extract move names from movesData
-                const moveNames = movesData.map((move, index) => `${move.Name}`);
-    
-                const moveOrder = await optionPromise('Which move should be replaced?', moveNames);
+                var moveOrder = await optionPromise(
+                    `Which move should be replaced?<br/>
+                    New move: 
+                    <div class="old-move">${moveName}<br/>
+                    <div class="move-info-popup" style="display:none;">
+                        ${generateMoveInfoHtml(moveData[0]).html()}
+                    </div></div>
+                    Select one of the moves below:`,
+                    moveNames
+                );
+                
+                moveOrder = moveOrder.split('<')[0].trim();
+
                 if (moveOrder !== null) {
-                    const moveIndex = moveOrder.split(':')[0].split(' ')[1] - 1; // Extract index from the selected option
-                    const data = {
-                        type: 'learn_move',
-                        pokemonId: message.pokemonId,
-                        moveId: message.moveSwap,
-                        moveOrder: moveIndex,
-                        token: token
-                    };
-                    socket.send(JSON.stringify(data));
-                    await showModalPromise(`${pokemonName} learned ${moveName}!`);
-                    moveConfirmed = true;
+                    const oldMove = movesData.find(move => move.Name === moveOrder);
+                    if (oldMove) {
+                        const data = {
+                            type: 'learn_move',
+                            pokemonId: message.pokemonId,
+                            moveId: message.moveSwap,
+                            moveOrder: oldMove.MoveOrder,
+                            token: token
+                        };
+                        socket.send(JSON.stringify(data));
+                        await showModalPromise(`${pokemonName} learned ${moveName}!`);
+                        moveConfirmed = true;
+                    } else {
+                        console.error("Selected move not found in moves data.");
+                    }
                 } else {
                     console.log("Move learning was cancelled by user.");
                 }
@@ -675,14 +782,19 @@ $(document).ready(async function () {
     
         await confirmAction(actionId, token, socket);
     }
+    
+
     $('#addExp').on('click', async function () {
+        showLoadingCircle('Loading data...');
         const pokemonId = $('#addexp-pokemonId').val();
         var exp = $('#addexp-exp').val();
-        addEXP(pokemonId, exp, token, socket);
+        await addEXP(pokemonId, exp, token, socket);
+        hideLoadingCircle();
         $('.move-info').hide();
     });
 
     $('#addPokemon').click(async function () {
+        showLoadingCircle('Loading data...');
         const pokedexId = $('#addPokemon-PokedexId').val();
         const level = $('#addPokemon-level').val();
 
@@ -699,6 +811,7 @@ $(document).ready(async function () {
         } else {
             alert('Please enter pokedex ID and level');
         }
+        hideLoadingCircle();
     });
 
     $(document).on('click', '.release-btn', async function () {
