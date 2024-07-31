@@ -110,9 +110,9 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         </p>
         <div id="pokemon-container"></div>
         <p>
-            PokemonID:<input type="number" id="addexp-pokemonId">
+            PokemonID:<input type="text" id="addexp-pokemonId">
             <br>
-            Exp:<input type="number" id="addexp-exp">
+            Exp:<input type="text" id="addexp-exp">
             <br>
             <button id="addExp">Add Exp</button>
         </p>

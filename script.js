@@ -1,6 +1,14 @@
+function setCookie(name, value) {
+    document.cookie = name + "=" + (value || "") + "; path=/";
+}
+
 function getCookie(name) {
     const cookieValue = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
     return cookieValue ? cookieValue.pop() : '';
+}
+
+function eraseCookie(name) {
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
 }
 
 function showLoadingCircle(text) {
@@ -191,7 +199,7 @@ function generateMoveInfoHtml(move) {
         'border-radius': '3px',
         'display': 'inline-block'
     });
-    
+
     var moveInfoContainer = $('<div></div>').addClass('move-info-popup')
         .append(moveDescription)
         .append(moveEffect)
@@ -299,6 +307,7 @@ $(document).ready(async function () {
                     console.log(message);
                     resolve(response);
                     hideLoadingCircle();
+                    eraseCookie('ExpPokemonId');
                 },
                 error: function (xhr, status, error) {
                     console.error(error);
@@ -314,31 +323,54 @@ $(document).ready(async function () {
     let isModalShowing = false;
     let isHandlingMessage = false;
 
-
     async function processNextTask(socket) {
         if (!isHandlingMessage) {
             isHandlingMessage = true;
 
             await fetchUnfinishedTasks();
+
+            const nonEvolveTasks = unfinishedTasks.filter(task => !task.evolve);
+            const evolveTasks = unfinishedTasks.filter(task => task.evolve);
+
+            const groupedNonEvolveTasks = nonEvolveTasks.reduce((acc, task) => {
+                if (task && task.pokemonId) {
+                    if (!acc[task.pokemonId]) {
+                        acc[task.pokemonId] = [];
+                    }
+                    acc[task.pokemonId].push(task);
+                }
+                return acc;
+            }, {});
+
+            const lastProcessedPokemonId = getCookie('ExpPokemonId');
+            let orderedPokemonIds = Object.keys(groupedNonEvolveTasks);
+            if (lastProcessedPokemonId) {
+                orderedPokemonIds = [lastProcessedPokemonId, ...orderedPokemonIds.filter(id => id !== lastProcessedPokemonId)];
+            }
+
+            const orderedNonEvolveTasks = orderedPokemonIds.flatMap(id => groupedNonEvolveTasks[id]);
+            unfinishedTasks = [...orderedNonEvolveTasks, ...evolveTasks];
+
             while (unfinishedTasks.length > 0) {
-                const nonEvolveTasks = unfinishedTasks.filter(task => !task.evolve);
-                const evolveTasks = unfinishedTasks.filter(task => task.evolve);
-
-                unfinishedTasks = [...nonEvolveTasks, ...evolveTasks];
-
                 const task = unfinishedTasks.shift();
+                if (!task) {
+                    console.warn('Skipping undefined task');
+                    console.log(task);
+                    continue;
+                }
                 try {
                     await handleMessage(task, token, socket);
                 } catch (error) {
                     console.error('Error processing task:', error);
                     showModalPromise('Error!');
                 }
-                location.reload()
+                location.reload();
             }
 
             isHandlingMessage = false;
         }
     }
+
 
     async function fetchUnfinishedTasks() {
         try {
@@ -561,13 +593,14 @@ $(document).ready(async function () {
 
                 if (message.pokemonId) {
                     const dataMon = await getData('pokemonId', message.pokemonId);
+
                     pokemonName = dataMon[0].Name;
                 }
 
                 if (message.levelup) {
                     await showModalPromise(`${pokemonName} grew to level ${message.levelup}!`);
                     await confirmAction(actionId, token, socket);
-
+                    await setCookie('ExpPokemonId', message.pokemonId);
                     if (message.expToAdd > 0) {
                         lastExpToAdd = message.expToAdd;
                         await addEXP(message.pokemonId, message.expToAdd, token, socket);
@@ -580,6 +613,8 @@ $(document).ready(async function () {
                     const moveName = dataMove[0].Name;
 
                     await showModalPromise(`${pokemonName} learned ${moveName}!`);
+
+                    await setCookie('ExpPokemonId', message.pokemonId);
                     await confirmAction(actionId, token, socket);
                 }
 
@@ -587,6 +622,7 @@ $(document).ready(async function () {
                     const moveId = message.moveSwap;
                     const dataMove = await getData('moveId', moveId);
 
+                    await setCookie('ExpPokemonId', message.pokemonId);
                     await handleMoveSwap(pokemonName, dataMove, message, token, socket, actionId);
                 }
 
@@ -719,7 +755,7 @@ $(document).ready(async function () {
                 $(this).find('.move-info-popup').stop(true, true).slideUp(200);
             }, 100);
         });
-        
+
         $(document).on('mouseenter', '.option-button', function () {
             $(this).find('.move-info-popup').stop(true, true).slideDown(200);
         }).on('mouseleave', '.option-button', function () {
@@ -727,12 +763,12 @@ $(document).ready(async function () {
                 $(this).find('.move-info-popup').stop(true, true).slideUp(200);
             }, 100);
         });
-    
+
         while (!moveConfirmed) {
             const confirmed = await confirmPromise(
                 `${pokemonName} is trying to learn ${moveName}. But, ${pokemonName} can't learn more than four moves! Delete an older move to make room for ${moveName}?`
             );
-    
+
             if (confirmed) {
                 const movesData = await getData('moves', message.pokemonId);
                 const moveNames = movesData.map((move) => {
@@ -741,7 +777,7 @@ $(document).ready(async function () {
                             ${generateMoveInfoHtml(move).html()}
                         </div>`;
                 });
-    
+
                 var moveOrder = await optionPromise(
                     `Which move should be replaced?<br/>
                     New move: 
@@ -752,7 +788,7 @@ $(document).ready(async function () {
                     Select one of the moves below:`,
                     moveNames
                 );
-                
+
                 moveOrder = moveOrder.split('<')[0].trim();
 
                 if (moveOrder !== null) {
@@ -779,19 +815,39 @@ $(document).ready(async function () {
                 moveConfirmed = true;
             }
         }
-    
+
         await confirmAction(actionId, token, socket);
     }
-    
+
 
     $('#addExp').on('click', async function () {
         showLoadingCircle('Loading data...');
-        const pokemonId = $('#addexp-pokemonId').val();
-        var exp = $('#addexp-exp').val();
-        await addEXP(pokemonId, exp, token, socket);
+
+        const pokemonIds = $('#addexp-pokemonId').val().split(',').map(id => id.trim()).filter(id => id);
+        const expValues = $('#addexp-exp').val().split(',').map(exp => exp.trim()).filter(exp => !isNaN(exp) && exp !== '').map(Number);
+
+        if (pokemonIds.length !== expValues.length) {
+            hideLoadingCircle();
+            alert('The number of Pokémon IDs and experience values must match.');
+            return;
+        }
+
+        try {
+            for (let i = 0; i < pokemonIds.length; i++) {
+                const pokemonId = pokemonIds[i];
+                const exp = expValues[i];
+                await addEXP(pokemonId, exp, token, socket);
+            }
+        } catch (error) {
+            console.error('Error adding experience:', error);
+            alert('Failed to add experience.');
+        }
+
         hideLoadingCircle();
         $('.move-info').hide();
     });
+
+
 
     $('#addPokemon').click(async function () {
         showLoadingCircle('Loading data...');
