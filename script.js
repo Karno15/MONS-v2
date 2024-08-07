@@ -63,7 +63,7 @@ function createViewSpriteLevel(pokemon) {
     var pokemonSpriteContainer = $(`<div class="pokemon-sprite"></div>`);
     var pokemonStatLevel = $(`<div class="pokemon-stat"><b>Level: ${pokemon.Level}</b></div>`);
 
-    var pokemonSprite = $(`<img src="image.php?path=${spritesPath}${pokemon.PokedexId}.png" alt="sprite" />`);
+    var pokemonSprite = $(`<img src="image.php?path=${spritesPath}${pokemon.PokedexId}.png" alt="sprite-${pokemon.Oname}" title=${pokemon.Oname} />`);
 
     showLoadingCircle('Loading Pokemon...');
 
@@ -291,6 +291,10 @@ $(document).ready(async function () {
                         pendingTasks.splice(index, 1);
                     }
                     resolve(true);
+                }
+                if (message.responseFrom === 'battle') {
+                    showLoadingCircle('Loading battle...');
+                    
                 }
             });
         });
@@ -853,12 +857,14 @@ $(document).ready(async function () {
         showLoadingCircle('Loading data...');
         const pokedexId = $('#addPokemon-PokedexId').val();
         const level = $('#addPokemon-level').val();
+        const nick =  $('#addPokemon-Nick').val();
 
         if (pokedexId && level) {
             const data = {
                 type: 'add_mon',
                 pokedexId: pokedexId,
                 level: level,
+                nick: nick,
                 token: token
             };
             socket.send(JSON.stringify(data));

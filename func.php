@@ -547,18 +547,17 @@ function addExp($pokemonId, $expGained, $token)
     }
 }
 
-function addMon($pokedexId, $level, $token)
+function addMon($pokedexId, $level, $nick, $token)
 {
     global $conn;
 
     $tokenData = getTokenData($token);
     $userId = $tokenData['userid'];
     $inparty = isPartyFull($userId);
-
-    $query = "INSERT INTO pokemon (`UserId`, `PokedexId`, `Level`, `Status`, `ItemHeld`, `inParty`, `Released`) 
-          VALUES (?, ?, ?, 'OK', 0, ?, 0)";
+    $query = "INSERT INTO pokemon (`Nickname`,`UserId`, `PokedexId`, `Level`, `Status`, `ItemHeld`, `inParty`, `Released`) 
+          VALUES (?, ?, ?, ?, 'OK', 0, ?, 0)";
     $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'iiii', $userId, $pokedexId, $level, $inparty);
+    mysqli_stmt_bind_param($stmt, 'siiii', $nick, $userId, $pokedexId, $level, $inparty);
     $result = mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
 

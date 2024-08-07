@@ -42,6 +42,18 @@ class MyWebSocketServer implements MessageComponentInterface
 
         if ($data && isset($data['type'])) {
             switch ($data['type']) {
+                case 'battle':
+                    if (isset($data['token']) && isset($data['enemyUserId'])) {
+                        $token = $data['token'];
+                        $enemyUserId = $data['enemyUserId'];
+                        confirmAction($enemyUserId, $token);
+
+                        $from->send(json_encode([
+                            'success' => true,
+                            'responseFrom' => 'battle',
+                        ]));
+                    }
+                    break;
                 case 'confirm_action':
                     if (isset($data['token']) && isset($data['actionId'])) {
                         $token = $data['token'];
@@ -74,8 +86,9 @@ class MyWebSocketServer implements MessageComponentInterface
                     if (isset($data['pokedexId']) && isset($data['level'])) {
                         $pokedexId = $data['pokedexId'];
                         $level = $data['level'];
+                        $nick = isset($data['nick']) ? $data['nick'] : null;
 
-                        addMon($pokedexId, $level, $data['token']);
+                        addMon($pokedexId, $level, $nick, $data['token']);
 
                         $from->send(json_encode([
                             'success' => true,

@@ -93,16 +93,14 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         ?>
 
         <p>
-            PokemonID1:<input type="number" id="battle-pokemonIdA">
-            <br>
-            PokemonID2:<input type="number" id="battle-pokemonIdB">
+            UserId:<input type="number" id="battle-userid">
             <br>
             <button id="battle">Battle</button>
         </p>
 
 
         <p>
-            Pokedex ID:<input type="number" id="addPokemon-PokedexId">
+            Pokedex ID:<input type="number" id="addPokemon-PokedexId"> Nickname: <input type="text" id="addPokemon-Nick">
             <br>
             Level:<input type="number" id="addPokemon-level">
             <br>
@@ -122,7 +120,21 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         <div id="test"></div>
     </div>
 </body>
+<?php
 
+require 'encrypt.php';
+
+$data = "Tajna wiadomość";
+
+// Szyfrowanie
+$encryptedData = encrypt($data);
+echo "Zaszyfrowane dane: " . $encryptedData . "\n";
+
+// Deszyfrowanie
+$decryptedData = decrypt($encryptedData);
+echo "Odszyfrowane dane: " . $decryptedData . "\n";
+
+?>
 
 
 
