@@ -93,7 +93,7 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         ?>
 
         <p>
-            UserId:<input type="number" id="battle-userid">
+            UserId:<input type="number" id="battle-enemyid">
             <br>
             <button id="battle">Battle</button>
         </p>
@@ -120,22 +120,5 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
         <div id="test"></div>
     </div>
 </body>
-<?php
-
-require 'encrypt.php';
-
-$data = "Tajna wiadomość";
-
-// Szyfrowanie
-$encryptedData = encrypt($data);
-echo "Zaszyfrowane dane: " . $encryptedData . "\n";
-
-// Deszyfrowanie
-$decryptedData = decrypt($encryptedData);
-echo "Odszyfrowane dane: " . $decryptedData . "\n";
-
-?>
-
-
 
 </html>

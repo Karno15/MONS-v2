@@ -3,6 +3,7 @@
 require 'conn.php';
 require '../func.php';
 require __DIR__ . '/../ratchet/vendor/autoload.php';
+require '../encrypt.php';
 
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
@@ -44,13 +45,22 @@ class MyWebSocketServer implements MessageComponentInterface
             switch ($data['type']) {
                 case 'battle':
                     if (isset($data['token']) && isset($data['enemyUserId'])) {
-                        $token = $data['token'];
                         $enemyUserId = $data['enemyUserId'];
-                        confirmAction($enemyUserId, $token);
+                        $token = $data['token'];
+                
+                        $payload = [
+                            'enemyUserId' => $enemyUserId,
+                            'token' => $token
+                        ];
+                
+                        $jsonPayload = json_encode($payload);
+                
+                        $encryptedData = encrypt($jsonPayload);
 
                         $from->send(json_encode([
                             'success' => true,
                             'responseFrom' => 'battle',
+                            'data' => $encryptedData
                         ]));
                     }
                     break;

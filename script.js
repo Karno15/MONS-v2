@@ -292,13 +292,11 @@ $(document).ready(async function () {
                     }
                     resolve(true);
                 }
-                if (message.responseFrom === 'battle') {
-                    showLoadingCircle('Loading battle...');
-                    
-                }
+
             });
         });
     }
+
 
     function getUnfinishedAction() {
         return new Promise(function (resolve, reject) {
@@ -730,22 +728,31 @@ $(document).ready(async function () {
         const message = JSON.parse(event.data);
         console.log('Incoming message:');
         console.log(message);
-        getUnfinishedAction().then(function (unfinishedData) {
-            hideLoadingCircle();
-            try {
-                const data = JSON.parse(unfinishedData);
-                if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-                    unfinishedTasks = data.data;
-                    processNextTask(socket);
+        if (message.responseFrom != 'battle') {
+            getUnfinishedAction().then(function (unfinishedData) {
+                hideLoadingCircle();
+                try {
+                    const data = JSON.parse(unfinishedData);
+                    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                        unfinishedTasks = data.data;
+                        processNextTask(socket);
+                    }
+                } catch (error) {
+                    console.error('Error parsing unfinished action data:', error);
                 }
-            } catch (error) {
-                console.error('Error parsing unfinished action data:', error);
-            }
-        }).catch(function (error) {
-            console.error('Error getting unfinished action:', error);
-        });
-        getPartyPokemon();
-        getBoxPokemon();
+            }).catch(function (error) {
+                console.error('Error getting unfinished action:', error);
+            });
+        }
+        if (message.responseFrom === 'battle') {
+            showLoadingCircle('Loading battle...');
+
+            // Extract the encrypted data from the response
+            const encryptedData = message.data;
+
+            // Redirect to battle.php with the encrypted data as a query parameter
+            window.location.href = `battle.php?data=${encodeURIComponent(encryptedData)}`;
+        }
     });
 
     async function handleMoveSwap(pokemonName, moveData, message, token, socket, actionId) {
@@ -857,7 +864,7 @@ $(document).ready(async function () {
         showLoadingCircle('Loading data...');
         const pokedexId = $('#addPokemon-PokedexId').val();
         const level = $('#addPokemon-level').val();
-        const nick =  $('#addPokemon-Nick').val();
+        const nick = $('#addPokemon-Nick').val();
 
         if (pokedexId && level) {
             const data = {
@@ -892,11 +899,20 @@ $(document).ready(async function () {
     });
 
     $('#battle').on('click', async function () {
+        const enemyUserId = $('#battle-enemyid').val();
 
-        const pokemonId = $('#addexp-pokemonId').val();
-
-        var exp = $('#addexp-exp').val();
-
-        addEXP(pokemonId, exp, token, socket);
+        if (enemyUserId) {
+            const data = {
+                type: 'battle',
+                enemyUserId: enemyUserId,
+                token: token
+            };
+            socket.send(JSON.stringify(data));
+            getPartyPokemon();
+            getBoxPokemon();
+        } else {
+            alert('Please enter pokedex ID and level');
+        }
+        hideLoadingCircle();
     });
 });
