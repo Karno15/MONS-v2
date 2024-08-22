@@ -24,9 +24,14 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
     <script src="jquery-3.7.1.min.js"></script>
     <link rel='stylesheet' href='style.css'>
     <script src="script.js"></script>
+    <script src="func.js"></script>
     <script>
         $(document).ready(async function() {
-            await getPartyPokemon();
+            getPartyPokemon('' , 0, function(response) {
+                var container = $('#pokemon-container');
+                displayPokemonParty(response, container);
+            });
+
             await getBoxPokemon();
         });
     </script>

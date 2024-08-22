@@ -1,23 +1,33 @@
 <?php
 require 'settings/conn.php';
 require 'func.php';
+
 session_start();
 
-if(!isset($_SESSION['userid'])){
-    echo json_encode(array('error' => 'No Access!'));
-    header('Location:index.php');
-    exit;
+if (isset($_GET['userId']) && is_numeric($_GET['userId'])) {
+    $userID = intval($_GET['userId']);
+} else {
+    if (isset($_SESSION['userid']) && is_numeric($_SESSION['userid'])) {
+        $userID = intval($_SESSION['userid']);
+    } else {
+        echo json_encode(array('error' => 'No valid user ID provided or session user ID missing.'));
+        exit;
+    }
 }
+
+$showFirst = isset($_GET['showFirst']) && $_GET['showFirst'] == '1';
 
 $query = "CALL showPartyData(?)";
 $stmt = mysqli_prepare($conn, $query);
-$userID = $_SESSION["userid"];
 mysqli_stmt_bind_param($stmt, 'i', $userID);
-
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $pokemonData = array();
+
 while ($row = mysqli_fetch_assoc($result)) {
+    if ($showFirst && count($pokemonData) >= 1) {
+        break;
+    }
     $pokemonData[] = $row;
 }
 mysqli_stmt_close($stmt);
@@ -37,10 +47,5 @@ foreach ($pokemonData as &$pokemon) {
     $pokemon['Moves'] = $movesData;
 }
 
-if (!empty($pokemonData)) {
-    header('Content-Type: application/json');
-    echo json_encode($pokemonData);
-} else {
-    echo json_encode(array('error' => 'Failed to fetch party Pokemon data'));
-}
-?>
+header('Content-Type: application/json');
+echo json_encode($pokemonData);

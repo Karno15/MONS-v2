@@ -1,5 +1,7 @@
 <?php
 
+require 'encrypt.php';
+
 function generateToken($userId, $login, $uid)
 {
     $creationDate = date('Y-m-d H:i:s');

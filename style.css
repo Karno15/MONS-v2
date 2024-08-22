@@ -132,7 +132,8 @@ body {
     position: relative;
 }
 
-.move-name, .option-button{
+.move-name,
+.option-button {
     font-weight: bold;
     color: #fff;
     cursor: pointer;
@@ -233,7 +234,8 @@ body {
     }
 }
 
-.option-button, .old-move{
+.option-button,
+.old-move {
     color: #fff;
     cursor: pointer;
     border: 1px solid black;
@@ -247,6 +249,6 @@ body {
     background-color: rgb(98, 210, 98);
 }
 
-.move-info-popup{
-    font-size:10pt;
+.move-info-popup {
+    font-size: 10pt;
 }
