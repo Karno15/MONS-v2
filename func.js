@@ -22,13 +22,11 @@ function hideLoadingCircle() {
     loadingVisible = false;
 }
 
-function getPartyPokemon(userId, showFirst, callback) {
+function getPartyPokemon(callback) {
     showLoadingCircle('Loading Pokemon...');
     $.ajax({
         url: 'getPartyPokemon.php',
         method: 'GET',
-        data: { userId: userId, showFirst: showFirst },
-        dataType: 'json',
         success: function (response) {
             if (callback) {
                 callback(response);

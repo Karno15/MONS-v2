@@ -456,7 +456,7 @@ $(document).ready(async function () {
 
     socket.addEventListener('message', async function (event) {
         showLoadingCircle('Loading...');
-        getPartyPokemon('' , 0, function(response) {
+        getPartyPokemon(function(response) {
             var container = $('#pokemon-container');
             displayPokemonParty(response, container);
         });
@@ -621,7 +621,7 @@ $(document).ready(async function () {
                 token: token
             };
             socket.send(JSON.stringify(data));
-            getPartyPokemon('' , 0, function(response) {
+            getPartyPokemon(function(response) {
                 var container = $('#pokemon-container');
                 displayPokemonParty(response, container);
             });
@@ -642,7 +642,7 @@ $(document).ready(async function () {
                 token: token
             };
             socket.send(JSON.stringify(data));
-            getPartyPokemon('' , 0, function(response) {
+            getPartyPokemon(function(response) {
                 var container = $('#pokemon-container');
                 displayPokemonParty(response, container);
             });
@@ -660,7 +660,7 @@ $(document).ready(async function () {
                 token: token
             };
             socket.send(JSON.stringify(data));
-            getPartyPokemon('' , 0, function(response) {
+            getPartyPokemon(function(response) {
                 var container = $('#pokemon-container');
                 displayPokemonParty(response, container);
             });

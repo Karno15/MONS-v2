@@ -27,7 +27,7 @@ if (!isset($_SESSION["userid"], $_SESSION["login"], $_SESSION["uid"])) {
     <script src="func.js"></script>
     <script>
         $(document).ready(async function() {
-            getPartyPokemon('' , 0, function(response) {
+            getPartyPokemon(function(response) {
                 var container = $('#pokemon-container');
                 displayPokemonParty(response, container);
             });

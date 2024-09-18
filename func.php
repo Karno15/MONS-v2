@@ -1,7 +1,5 @@
 <?php
 
-require 'encrypt.php';
-
 function generateToken($userId, $login, $uid)
 {
     $creationDate = date('Y-m-d H:i:s');
@@ -747,4 +745,33 @@ function canLearnMove($pokemonId)
 
     $result = !empty($moves) ? ['moves' => $moves, 'moveCount' => $movesetCount] : false;
     return $result;
+}
+
+function getPartyStatus($userId) {
+    global $conn;
+
+    $stmt = $conn->prepare("
+        SELECT u.login, p.status
+        FROM pokemon p
+        JOIN users u ON u.userid = p.userId
+        WHERE p.userId = ? AND p.inParty = 1 AND p.Released = 0
+    ");
+    
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $data = [
+        'login' => '',
+        'statuses' => []
+    ];
+
+    while ($row = $result->fetch_assoc()) {
+        if (empty($data['login'])) {
+            $data['login'] = $row['login']; // Set the username once
+        }
+        $data['statuses'][] = $row['status']; // Collect Pokémon statuses
+    }
+
+    return $data;
 }

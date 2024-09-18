@@ -4,22 +4,17 @@ require 'func.php';
 
 session_start();
 
-if (isset($_GET['userId']) && is_numeric($_GET['userId'])) {
-    $userID = intval($_GET['userId']);
+if (isset($_SESSION['userid']) && is_numeric($_SESSION['userid'])) {
+    $userId = intval($_SESSION['userid']);
 } else {
-    if (isset($_SESSION['userid']) && is_numeric($_SESSION['userid'])) {
-        $userID = intval($_SESSION['userid']);
-    } else {
-        echo json_encode(array('error' => 'No valid user ID provided or session user ID missing.'));
-        exit;
-    }
+    echo json_encode(array('error' =>  'session user ID missing.'));
+    exit;
 }
 
-$showFirst = isset($_GET['showFirst']) && $_GET['showFirst'] == '1';
 
 $query = "CALL showPartyData(?)";
 $stmt = mysqli_prepare($conn, $query);
-mysqli_stmt_bind_param($stmt, 'i', $userID);
+mysqli_stmt_bind_param($stmt, 'i', $userId);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $pokemonData = array();
