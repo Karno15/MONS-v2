@@ -84,29 +84,66 @@
         </div>
 
         <div id="battleBody">
+            <!-- Enemy Pokemon Information -->
+            <?php
+            $enemyPokemon = getEnemyPokemonData($enemyId); // Fetch enemy Pokemon data
+            ?>
             <div class="enemymon">
-                <div class="enemymon-sprite"></div>
-                <div class="enemymon-name">Name Lv40</div>
-                <div class="enemymon-info">hp bar</div>
-                <div class="enemymon-status">PAR</div>
-            </div>
-            <div class="usermon">
-                <div class="usermon-sprite"></div>
-                <div class="usermon-name">Name Lv40</div>
-                <div class="usermon-info">
-
-                    <div>
-                        <div class="hpcount pokemon-stat">HP: ${pokemon.HPLeft}/${pokemon.HP}
+                <div class="enemymon-sprite">
+                    <img src="img/pokemon_sprites/<?php echo strtolower($enemyPokemon['species_name']); ?>.png" alt="<?php echo $enemyPokemon['species_name']; ?>"> <!-- Use species name for sprite -->
+                </div>
+                <div class="enemymon-name">
+                    <?php echo $enemyPokemon['nickname']; ?> <!-- Enemy nickname (or species name if no nickname) -->
+                    <div class="enemymon-level">Lv<?php echo $enemyPokemon['level']; ?></div>
+                </div>
+                <div class="enemymon-info">
+                    <div class="hpcount pokemon-stat">
                         <div class="progress-bar">
-                            <div class="progress-hp" style="width: 5%; background-color: #271;"></div>
+                            <div class="progress-hp" style="width: <?php echo $enemyPokemon['hp_percentage']; ?>%; background-color: #271;"></div>
                         </div>
-                        </div>
-                        
                     </div>
                 </div>
-                <div class="usermon-status"><div class='status pokemon-stat' style="background-color: #fff;">${pokemon.Status}</div></div>
+                <div class="enemymon-status">
+                    <div class='status pokemon-stat' style="background-color: ${statusColor};"><?php echo $enemyPokemon['status'];?></div>
+                </div>
+            </div>
+
+            <?php
+            $userPokemon = getUserPokemonData($userId);
+            ?>
+            <div class="usermon">
+                <div class="usermon-sprite">
+                    <img src="img/pokemon_sprites/<?php echo strtolower($userPokemon['species_name']); ?>.png" alt="<?php echo $userPokemon['species_name']; ?>">
+                </div>
+                <div class="usermon-name">
+                    <?php echo $userPokemon['nickname']; ?>
+                    <div class="usermon-level">Lv<?php echo $userPokemon['level']; ?></div>
+                </div>
+                <div class="usermon-info">
+                    <div class="hpcount pokemon-stat">
+                        HP: <?php echo $userPokemon['hp_left']; ?> / <?php echo $userPokemon['hp_total']; ?>
+                        <div class="progress-bar">
+                            <?php
+                            $userHpPercentage = ($userPokemon['hp_left'] / $userPokemon['hp_total']) * 100;
+                            ?>
+                            <div class="progress-hp" style="width: <?php echo $userHpPercentage; ?>%; background-color: #271;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="usermon-status">
+                    <div class='status pokemon-stat'><?php echo $userPokemon['status'];?></div>
+                </div>
+                <div class="usermon-exp">
+                    <div class="progress-bar">
+                        <?php
+                        $userExpPercentage = (($userPokemon['total_exp'] - $userPokemon['min_exp']) / $userPokemon['exp_to_next_level']) * 100;
+                        ?>
+                        <div class="progress-exp" style="width: <?php echo $userExpPercentage; ?>%;"></div>
+                    </div>
+                </div>
             </div>
         </div>
+
 
         <div id="enemy-party">
             <?php
@@ -165,6 +202,24 @@
             padding: 20px;
         }
 
+        .usermon-exp {
+            position: absolute;
+            height: 20px;
+            bottom: 0px;
+        }
+
+        .usermon-exp>.progress-bar,
+        .progress-exp {
+            margin-top: 7px;
+            height: 7px;
+        }
+
+
+        .usermon-exp>.progress-bar,
+        .hpcount>.progress-bar {
+            width: 340px;
+        }
+
         #my-party {
             align-items: flex-start;
         }
@@ -186,7 +241,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 60%;
+            width: 75%;
             min-height: 500px;
             text-align: center;
             position: relative;
@@ -249,19 +304,20 @@
 
         .enemymon,
         .usermon {
-            width: 450px;
-            height: 250px;
+            width: 400px;
             position: absolute;
         }
 
         .enemymon {
-            top: 30;
+            top: 10;
             right: 30;
+            height: 250px;
         }
 
         .usermon {
-            bottom: 30;
+            bottom: 10;
             left: 30;
+            height: 270px;
         }
 
         .enemymon-sprite,
@@ -274,7 +330,6 @@
 
         .enemymon-info,
         .usermon-info {
-            width: 380px;
             height: 50px;
             background-color: rgba(0, 0, 0, 0.3);
             position: absolute;
@@ -306,7 +361,7 @@
 
         .enemymon-name,
         .usermon-name {
-            width: 250px;
+            width: 200px;
             height: 50px;
             bottom: 50px;
             position: absolute;
@@ -319,15 +374,38 @@
             left: 0;
         }
 
+        .enemymon-level,
+        .usermon-level {
+            margin: 10px;
+        }
+
         .enemymon-status,
         .usermon-status {
-            width: 70px;
+            width: 60px;
             height: 50px;
             bottom: 0;
             position: absolute;
             display: flex;
             justify-content: center;
             align-items: center;
+        }
+
+        .usermon-status,
+        .usermon-info {
+            bottom: 20px;
+        }
+
+        .usermon-status {
+            bottom: 10px;
+        }
+
+        .usermon-name {
+            bottom: 70px;
+        }
+
+        .status {
+            margin-top: 15px;
+
         }
     </style>
 

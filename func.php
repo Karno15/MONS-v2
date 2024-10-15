@@ -775,3 +775,78 @@ function getPartyStatus($userId) {
 
     return $data;
 }
+
+function getEnemyPokemonData($enemyId) {
+    global $conn;
+
+    // Query to fetch the necessary enemy Pokémon data (first Pokémon in the party)
+    $query = "SELECT COALESCE(NULLIF(p.Nickname, ''), pk.Name) AS Name, 
+                     pk.Name AS species_name,  -- Fetching the species name
+                     p.Level, 
+                     p.Status, 
+                     (p.HPLeft / p.HP) * 100 AS HpPercentage
+              FROM pokemon p
+              JOIN pokedex pk ON pk.PokedexId = p.PokedexId
+              WHERE p.inParty = 1 
+                AND p.UserId = ? 
+                AND p.Released = 0
+              ORDER BY p.PokemonId
+              LIMIT 1";
+
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $enemyId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    $enemyPokemon = mysqli_fetch_assoc($result);
+
+    return [
+        'nickname' => $enemyPokemon['Name'],
+        'species_name' => $enemyPokemon['species_name'],  // Include species name for the sprite
+        'level' => $enemyPokemon['Level'],
+        'status' => $enemyPokemon['Status'],
+        'hp_percentage' => $enemyPokemon['HpPercentage']
+    ];
+}
+
+function getUserPokemonData($userId) {
+    global $conn;
+
+    // Query to fetch the necessary user Pokémon data (first Pokémon in the party)
+    $query = "SELECT COALESCE(NULLIF(p.Nickname, ''), pk.Name) AS Name, 
+                     pk.Name AS species_name,  -- Fetching the species name
+                     p.Level, 
+                     p.HPLeft, 
+                     p.HP, 
+                     p.Status, 
+                     p.Exp, 
+                     e.ExpTNL, 
+                     e.Exp as MinExp
+              FROM pokemon p
+              JOIN pokedex pk ON pk.PokedexId = p.PokedexId
+              JOIN exptype e ON e.Type = pk.ExpType AND e.Level = p.Level
+              WHERE p.inParty = 1 
+                AND p.UserId = ? 
+                AND p.Released = 0
+              ORDER BY p.PokemonId
+              LIMIT 1";
+
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $userId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    $userPokemon = mysqli_fetch_assoc($result);
+
+    return [
+        'nickname' => $userPokemon['Name'],
+        'species_name' => $userPokemon['species_name'],  // Include species name for the sprite
+        'level' => $userPokemon['Level'],
+        'hp_left' => $userPokemon['HPLeft'],
+        'hp_total' => $userPokemon['HP'],
+        'status' => $userPokemon['Status'],
+        'total_exp' => $userPokemon['Exp'],
+        'min_exp' => $userPokemon['MinExp'],
+        'exp_to_next_level' => $userPokemon['ExpTNL']
+    ];
+}

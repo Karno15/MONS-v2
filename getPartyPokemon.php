@@ -20,9 +20,6 @@ $result = mysqli_stmt_get_result($stmt);
 $pokemonData = array();
 
 while ($row = mysqli_fetch_assoc($result)) {
-    if ($showFirst && count($pokemonData) >= 1) {
-        break;
-    }
     $pokemonData[] = $row;
 }
 mysqli_stmt_close($stmt);
